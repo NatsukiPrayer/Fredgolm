@@ -16,10 +16,10 @@ class Triangle:
         y = round((p1[1] + p2[1] + p3[1]) / 3, 2)
         self.center = Point([x, y])
 
-    def points_check(self, other):
+    def points_check(self, other: "Triangle") -> list[bool]:
         return [any([p1 == p2 for p2 in other.points]) for p1 in self.points]
 
-    def lines(self):
+    def lines(self) -> list[Line]:
         return [Line(self.points[0], self.points[1]),
                 Line(self.points[1], self.points[2]),
                 Line(self.points[2], self.points[0])]
@@ -38,13 +38,13 @@ class Triangle:
         else:
             return h
 
-    def __angle_calculation(self, v1: Line, v2: Line, height: float):
+    def __angle_calculation(self, v1: Line, v2: Line, height: float) -> float:
         if v1.length * v2.length * v1.arcos_angle_between(v2) > 0:
             return acos(height / self.lines()[1].length)
         else:
             return -acos(height / self.lines()[1].length)
 
-    def integral(self, op):
+    def integral(self, op: Point) -> float:
         high_log = lambda x: log(abs((1 + tan(x / 2)) / (1 - tan(x / 2))))
         triangle = self
         try:
@@ -61,18 +61,18 @@ class Triangle:
         return height * (high_log(amax) - high_log(amin))
 
 
-    def R(self):
+    def R(self) -> float:
         return Line(self.points[0], self.points[1]).length * \
                Line(self.points[1], self.points[2]).length * \
                Line(self.points[2], self.points[0]).length / (4 * self.square())
 
-    def __eq__(self, other):
+    def __eq__(self, other: "Triangle") -> bool:
         if all(self.points_check(other)):
             return True
         else:
             return False
 
-    def is_related(self, other):
+    def is_related(self, other: "Triangle") -> bool:
         if self != other:
             if sum(self.points_check(other)) == 2:
                 return True
@@ -80,7 +80,7 @@ class Triangle:
                 return False
         return False
 
-    def square(self):
+    def square(self) -> float:
         l1 = Line(self.points[0], self.points[1]).length
         l2 = Line(self.points[1], self.points[2]).length
         l3 = Line(self.points[2], self.points[0]).length
@@ -88,7 +88,7 @@ class Triangle:
         return (s * (s - l1) * (s - l2) * (s - l3))**(1/2)
 
 
-    def is_in(self, point):
+    def is_in(self, point: Point) -> bool:
         if point in self.points:
             return False
         p0y = self.points[0][1]
@@ -108,7 +108,7 @@ class Triangle:
         else:
             return False
 
-    def area(self):
+    def area(self) -> float:
         p0y = self.points[0][1]
         p1y = self.points[1][1]
         p2y = self.points[2][1]
@@ -117,10 +117,10 @@ class Triangle:
         p2x = self.points[2][0]
         return 0.5 * (-p1y * p2x + p0y * (-p1x + p2x) + p0x * (p1y - p2y) + p1x * p2y)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ' '.join(map(str, self.points))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
     

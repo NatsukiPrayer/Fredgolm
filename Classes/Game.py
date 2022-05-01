@@ -10,7 +10,7 @@ from Classes.Triangle import Triangle
 import numpy as np
 
 class Game:
-    def __init__(self):
+    def __init__(self) -> None:
         self.points = []
         self.lines = []
         self.triangles = []
@@ -58,7 +58,7 @@ class Game:
 
         self.menu = None
 
-    def new_point(self, pos = None):
+    def new_point(self, pos = None) -> None:
         if pos == None:
             pos = pygame.mouse.get_pos()
         if pos[0] < 700:
@@ -89,7 +89,7 @@ class Game:
                         point.related.append(NewPoint)
                         pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
 
-    def triangles_creation(self):
+    def triangles_creation(self) -> None:
         self.triangles = []
         for point in self.points:
             for next_point in point.related:
@@ -105,7 +105,7 @@ class Game:
                     self.triangles.remove(t)
                     break
 
-    def rel(self):
+    def rel(self) -> None:
         print('===========================')
         for p in self.points:
             print(p.related)
@@ -118,20 +118,20 @@ class Game:
             print(t.center)
             print(len(self.triangles))
 
-    def clear(self):
+    def clear(self) -> None:
         self.points = []
         self.lines = []
         self.triangles = []
         self.redraw(from_scracth = True)
 
-    def divide(self):
+    def divide(self) -> None:
         min_square = min([t.square() for t in self.triangles])
         for t in self.triangles:
             diff = t.square() / min_square
             if diff > 3:
                 self.new_point(t.center.coord)
 
-    def line_center(self):
+    def line_center(self) -> None:
         existing_lines = self.lines.copy()
         min_edge = min([l.length for l in existing_lines])
         for line in existing_lines:
@@ -139,7 +139,7 @@ class Game:
                 new = line.points[1] + line.points[0]
                 self.new_point([c/2 for c in new.coord])
 
-    def flip(self, t1, t2):
+    def flip(self, t1: Triangle, t2: Triangle) -> bool:
         temp = []
         for share_p in t1.points:
             if share_p in t2.points:
@@ -162,7 +162,7 @@ class Game:
         self.triangles.remove(t2)
         return True
 
-    def optimize(self):
+    def optimize(self) -> None:
         for i in range(len(self.triangles)):
             for j in range(i, len(self.triangles)):
                 if self.triangles[j].is_related(self.triangles[i]):
@@ -174,7 +174,7 @@ class Game:
         print('=========================Done!=========================')
         #yield True
 
-    def run(self):
+    def run(self) -> None:
         clock = pygame.time.Clock()
         is_running = True
         #opt = self.optimize()
@@ -228,7 +228,7 @@ class Game:
 
             self.redraw()
 
-    def redraw(self, from_scracth = False):
+    def redraw(self, from_scracth = False) -> None:
         if from_scracth == True:
             for p in self.points:
                 p.clean()
@@ -251,7 +251,7 @@ class Game:
         self.manager.draw_ui(self.window)
         pygame.display.update()
 
-    def save(self, mode = 0):
+    def save(self, mode = 0) -> None:
         if mode == 0:
             with open('save.gg', 'w') as f:
                 f.write('\n'.join(map(str, self.points)))
@@ -268,7 +268,7 @@ class Game:
                 for micro_line in lines:
                     f.write(micro_line)
 
-    def load(self, path):
+    def load(self, path: str) -> None:
         with open(path, 'r') as f:
             self.points = []
             self.triangles = []
@@ -277,7 +277,7 @@ class Game:
                 self.new_point(pos = tuple(map(float, line.split())))
                 self.redraw(from_scracth=True)
 
-    def calc(self, a, b):
+    def calc(self, a: float, b: float) -> None:
         N = len(self.triangles) ** (1 / 2).__floor__()
         A, f = self.find_A(a, b, N)
         calcul = np.linalg.solve(A, f)
@@ -289,7 +289,7 @@ class Game:
             [np.linalg.norm(analyt_sol[i]) for i in range(0, N)])
         print('delta = ', delta)
 
-    def find_A(self, a, b, N, K=lambda x, y: x*x + y*y, f=lambda x: 1):
+    def find_A(self, a: float, b: float, N: int, K=lambda x, y: x*x + y*y, f=lambda x: 1) -> list:
         A = []
         for i in range(0, len(self.triangles)):
             temp = []
