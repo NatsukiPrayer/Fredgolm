@@ -23,6 +23,9 @@ class Line:
         v2_u = v2_u / np.linalg.norm(v2_u)
         return np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)
 
+    def arcos_angle_between(self, l2) -> float:
+        return np.arccos(self.cos_angle_between(l2))
+
     @staticmethod
     def is_close(line, intersect_p, tol = 1e-9):
         if isclose(

@@ -216,8 +216,9 @@ class Game:
                         self.line_center()
                         self.redraw(from_scracth = True)
                     if self.height_button.check_pressed():
-                        newp = self.triangles[0].get_height_intersect(self.triangles[0].points[1])
+                        newp = self.triangles[0].get_height_intersect(self.triangles[0].points[2])
                         self.new_point(newp.coord)
+                        print(self.triangles[0].integral(self.triangles[0].points[2]))
                         self.redraw(from_scracth = True)
 
 

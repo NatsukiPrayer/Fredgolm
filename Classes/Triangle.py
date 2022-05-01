@@ -1,5 +1,7 @@
 from Classes.Point import Point
 from Classes.Lines import Line
+import numpy as np
+from math import log, tan, acos
 
 class Triangle:
 
@@ -22,7 +24,7 @@ class Triangle:
                 Line(self.points[1], self.points[2]),
                 Line(self.points[2], self.points[0])]
 
-    def get_height_intersect(self, p: str) -> Point:
+    def get_height_intersect(self, p: Point, height_len=False) -> Point:
         lines = self.lines()
         if p not in self.points:
             raise ValueError("No such points in triangle")
@@ -30,11 +32,34 @@ class Triangle:
         side_point = base[0]
         side = next(l for l in lines if p in l and side_point in l)
         cos = base.cos_angle_between(side)
-        H = (base.direction() * cos * side.length) + base[0]
-        #if base.isBetween(H):
-        return (base.direction() * cos * side.length) + base[0]
-        #else:
-        #    return (base.direction() * cos * side.length) - base[0]
+        h = (base.direction() * cos * side.length) + base[0]
+        if height_len:
+            return [h, Line(p, h).length]
+        else:
+            return h
+
+    def __angle_calculation(self, v1: Line, v2: Line, height: float):
+        if v1.length * v2.length * v1.arcos_angle_between(v2) > 0:
+            return acos(height / self.lines()[1].length)
+        else:
+            return -acos(height / self.lines()[1].length)
+
+    def integral(self, op):
+        high_log = lambda x: log(abs((1 + tan(x / 2)) / (1 - tan(x / 2))))
+        triangle = self
+        try:
+            np.seterr(all='raise')
+            intersect, height = triangle.get_height_intersect(op, height_len=True)
+        except:
+            return 0
+        intersect = triangle.get_height_intersect(op)
+        HA = Line(intersect, triangle.points[0])
+        HB = Line(intersect, triangle.points[1])
+        AB = Line(triangle.points[0], triangle.points[1])
+        amin = self.__angle_calculation(AB, HB, height)
+        amax = self.__angle_calculation(AB, HA, height)
+        return height * (high_log(amax) - high_log(amin))
+
 
     def R(self):
         return Line(self.points[0], self.points[1]).length * \
