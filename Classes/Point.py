@@ -1,5 +1,5 @@
 from logging import exception
-
+import numpy as np
 
 class Point:
     def __init__(self, coord):
@@ -54,7 +54,7 @@ class Point:
     def __mul__(self, other):
         if type(other) == Point:
             return sum([coord1 * coord2 for coord1, coord2 in zip(self.coord, other.coord)])
-        else:
+        else    :
             return Point([coord * other for coord in self.coord])
 
     # def __pow__(self, power, modulo=None):

@@ -14,7 +14,7 @@ class Line:
 
     def direction(self):
         direc = self.points[1] - self.points[0]
-        return Point([c / np.linalg.norm(direc.coord) for c in direc.coord])
+        return Point([c / np.linalg.norm(direc.coord) * -1 for c in direc.coord])
 
     def cos_angle_between(self, l2):
         v1_u = (self.points[1] - self.points[0]).coord
@@ -55,6 +55,24 @@ class Line:
         intersect_p = Point(coord)
 
         return Line.is_close(self, intersect_p) and Line.is_close(other, intersect_p)
+
+    def isBetween(self, c):
+        # compare versus epsilon for floating point values, or != 0 if using integers
+        b = self.points[1]
+        a = self.points[0]
+        ba = [b - a for b, a in zip(b.coord, a.coord)]
+        ca = [c - a for c, a in zip(c.coord, a.coord)]
+        if abs(np.cross(ba, ca)) > 10 ** (-9):
+            return False
+
+        if np.dot(ba, ca) < 0:
+            return False
+
+        if np.dot(ba, ca) > Line(a, b).length:
+            return False
+
+        return True
+
 
     def __eq__(self, other: "Line") -> bool:
         return all([any([l1 == l2 for l2 in other.points]) for l1 in self.points])

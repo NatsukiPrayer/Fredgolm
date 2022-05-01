@@ -30,7 +30,11 @@ class Triangle:
         side_point = base[0]
         side = next(l for l in lines if p in l and side_point in l)
         cos = base.cos_angle_between(side)
+        H = (base.direction() * cos * side.length) + base[0]
+        #if base.isBetween(H):
         return (base.direction() * cos * side.length) + base[0]
+        #else:
+        #    return (base.direction() * cos * side.length) - base[0]
 
     def R(self):
         return Line(self.points[0], self.points[1]).length * \
