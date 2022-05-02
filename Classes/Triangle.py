@@ -31,7 +31,7 @@ class Triangle:
         base = next(l for l in lines if p not in l)
         side_point = base[0]
         side = next(l for l in lines if p in l and side_point in l)
-        cos = base.cos_angle_between(side)
+        cos = base.cos_angle_between(side.invert() if side[1] not in base else side)
         h = (base.direction() * cos * side.length) + base[0]
         if height_len:
             return [h, Line(p, h).length]
@@ -39,6 +39,8 @@ class Triangle:
             return h
 
     def __angle_calculation(self, v1: Line, v2: Line, height: float) -> float:
+        g = self.lines()[1].length
+        gg = height / self.lines()[1].length
         if v1.length * v2.length * v1.arcos_angle_between(v2) > 0:
             return acos(height / self.lines()[1].length)
         else:

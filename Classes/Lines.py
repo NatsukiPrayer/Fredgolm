@@ -12,6 +12,9 @@ class Line:
     def __getitem__(self, item: int) -> Point:
         return self.points[item]
 
+    def invert(self) -> "Line":
+        return Line(self.points[1], self.points[0])
+
     def direction(self) -> Point:
         direc = self.points[1] - self.points[0]
         return Point([c / np.linalg.norm(direc.coord) * -1 for c in direc.coord])
