@@ -1,13 +1,18 @@
-import random
-import sqlite3
+import math
 
-import numpy
+import matplotlib.pyplot as plt
 import pygame
 import pygame_gui
 from Classes.Point import Point
 from Classes.Lines import Line
 from Classes.Triangle import Triangle
 import numpy as np
+from math import pi
+from colour import Color
+
+# colors is now a list of length 10
+# Containing:
+# [<Color red>, <Color #f13600>, <Color #e36500>, <Color #d58e00>, <Color #c7b000>, <Color #a4b800>, <Color #72aa00>, <Color #459c00>, <Color #208e00>, <Color green>]
 
 class Game:
     def __init__(self) -> None:
@@ -55,6 +60,9 @@ class Game:
         self.height_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 475), (100, 50)),
                                                                text='Height',
                                                                manager=self.manager)
+        self.mpl_draw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 525), (100, 50)),
+                                                          text='mpl_draw',
+                                                          manager=self.manager)
 
         self.menu = None
 
@@ -220,7 +228,8 @@ class Game:
                         self.new_point(newp.coord)
                         print(self.triangles[0].integral(self.triangles[0].points[2]))
                         self.redraw(from_scracth = True)
-
+                    if self.mpl_draw_button.check_pressed():
+                        self.mpl_draw()
 
                 self.manager.process_events(event)
 
@@ -278,24 +287,54 @@ class Game:
                 self.redraw(from_scracth=True)
 
     def calc(self, a: float, b: float) -> None:
-        N = len(self.triangles) ** (1 / 2).__floor__()
+        N = len(self.triangles)
         A, f = self.find_A(a, b, N)
         calcul = np.linalg.solve(A, f)
-        c2 = (600 ** 3 / 3 + 600 ** 6 / (5 * (1 - 600 ** 3 / 3))) / (
-                    1 - 600 ** 3 / 3 - 600 ** 6 / (5 * (1 - 600 ** 3 / 3)))
-        c1 = 600 * (1 + c2) / (1 - 600 ** 3 / 3)
-        analyt_sol = [1 + x ** 2 * c1 + c2 for x in range(0, 600, int(600/N))]
-        delta = sum([np.linalg.norm(analyt_sol[i] - calcul[i]) for i in range(0, N)]) / sum(
-            [np.linalg.norm(analyt_sol[i]) for i in range(0, N)])
-        print('delta = ', delta)
+        #calcul_num = sorted([[calcul[i], i] for i in range(len(self.triangles))],
+                            #key = lambda x: x[0])
+        # red = Color("blue")
+        # colors = list(red.range_to(Color("red"), math.ceil(calcul_num[-1][0] - calcul_num[0][0])))
+        # colors_rgb = [c.rgb for c in colors]
+        # colors_rgb_255 = [(c[0] * 255, c[1] * 255, c[2] * 255) for c in colors_rgb]
 
-    def find_A(self, a: float, b: float, N: int, K=lambda x, y: x*x + y*y, f=lambda x: 1) -> list:
+        #print(calcul_num)
+        min_calcul = abs(min(calcul))
+        max_calcul = max(calcul) + min_calcul
+        for i in range(len(calcul)):
+            kal = (calcul[i] + min_calcul) / max_calcul
+            pygame.draw.circle(self.background, (kal * 255, 0, (1-kal) * 255), self.triangles[i].center.coord, 4)
+        #c2 = (600 ** 3 / 3 + 600 ** 6 / (5 * (1 - 600 ** 3 / 3))) / (
+        #            1 - 600 ** 3 / 3 - 600 ** 6 / (5 * (1 - 600 ** 3 / 3)))
+        #c1 = 600 * (1 + c2) / (1 - 600 ** 3 / 3)
+        #analyt_sol = [1 + x ** 2 * c1 + c2 for x in range(0, 600, int(600/N))]
+        #delta = sum([np.linalg.norm(analyt_sol[i] - calcul[i]) for i in range(0, N)]) / sum(
+        #    [np.linalg.norm(analyt_sol[i]) for i in range(0, N)])
+
+
+    def core(self, p1: Point, p2: Point):
+        return 1/(pi * 90000) * (1/ abs(p1 - p2))
+
+    def find_A(self, a: float, b: float, N: int, f=None) -> list:
+        if f is None:
+            f = self.core
         A = []
         for i in range(0, len(self.triangles)):
             temp = []
             for j in range(0, len(self.triangles)):
-                temp.append(np.linalg.norm(K(self.triangles[i].center, self.triangles[j].center)) * self.triangles[j].area())
+                if j == i:
+                    #temp.append(self.triangles[j].integral() * self.triangles[j].area())
+                    temp.append(0)
+                else:
+                    temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
             A.append(temp)
         A = np.array(A) + np.eye(len(A))
-        f_vec = [1 for i in range(N)]
+        q = Point([350, 300])
+        pygame.draw.circle(self.background, 'black', q.coord, 10)
+        f_vec = [f(i.center, q) for i in self.triangles]
         return [A, f_vec]
+
+    def mpl_draw(self):
+        x = [p[0] for p in self.points]
+        y = [p[1] for p in self.points]
+        plt.plot(x, y, '-o')
+        plt.show()

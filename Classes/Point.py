@@ -39,6 +39,9 @@ class Point:
         else:
             return True
 
+    def __abs__(self):
+        return sum([c**2 for c in self.coord])**(1/2)
+
     def clean(self) -> None:
         new_related = []
         for p in self.related:

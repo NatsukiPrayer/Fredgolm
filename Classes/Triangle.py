@@ -15,6 +15,7 @@ class Triangle:
         x = round((p1[0] + p2[0] + p3[0]) / 3, 2)
         y = round((p1[1] + p2[1] + p3[1]) / 3, 2)
         self.center = Point([x, y])
+        self.color = 0
 
     def points_check(self, other: "Triangle") -> list[bool]:
         return [any([p1 == p2 for p2 in other.points]) for p1 in self.points]
@@ -46,7 +47,8 @@ class Triangle:
         else:
             return -acos(height / self.lines()[1].length)
 
-    def integral(self, op: Point) -> float:
+    def integral(self) -> float:
+        op = self.points[2]
         high_log = lambda x: log(abs((1 + tan(x / 2)) / (1 - tan(x / 2))))
         triangle = self
         try:
