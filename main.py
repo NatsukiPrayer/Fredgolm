@@ -3,12 +3,15 @@ from Classes.Lines import Line
 from Classes.Game import Game
 from Classes.Triangle import Triangle
 from math import pi, sin, cos
+from settings import *
 
 # Press the green button in the gutter to run the script.
 if __name__ == "__main__":
     r = 90000
     rs = r ** (1/2)
-    points = [[300, 300]] + [[cos(i*pi/8) * rs + 300, sin(i*pi/8) * rs + 300] for i in range(0, 16)]
+    points = [[WORKING_SPACE_WIDTH_HALF, WORKING_SPACE_HEIGHT_HALF]] + \
+             [[cos(i*pi/8) * rs + WORKING_SPACE_WIDTH_HALF,
+               sin(i*pi/8) * rs + WORKING_SPACE_HEIGHT_HALF] for i in range(0, 16)]
     circle = [Point(point) for point in points]
     with open('Mikhail.gg', 'w') as f:
         f.write('\n'.join(map(str, circle)))

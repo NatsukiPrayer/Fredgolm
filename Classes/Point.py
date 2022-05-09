@@ -4,8 +4,19 @@ from typing import Union
 
 class Point:
     def __init__(self, coord: list[float]) -> None:
-        self.coord = coord
+        if len(coord) < 3:
+            for i in range(len(coord), 3):
+                coord.append(0)
+        self.coordinates = coord
+        self.coord = self.coordinates[:2]
         self.related = []
+
+    def project(self, rot_x: np.array, rot_y: np.array, rot_z: np.array, proj_matrix: np.array) -> np.array:
+        np_coord = np.array(self.coordinates)
+        rotate_x = rot_x @ np_coord
+        rotate_y = rot_y @ rotate_x
+        rotate_z = rot_z @ rotate_y
+        return proj_matrix @ rotate_z
 
     def __sub__(self, other: "Point") -> "Point":
         if len(self.coord) == len(other.coord):

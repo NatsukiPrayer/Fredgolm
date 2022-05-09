@@ -7,12 +7,14 @@ from Classes.Point import Point
 from Classes.Lines import Line
 from Classes.Triangle import Triangle
 import numpy as np
-from math import pi
-from colour import Color
+from math import pi, cos, sin
+from settings import *
+import numpy as np
+
 
 # colors is now a list of length 10
 # Containing:
-# [<Color red>, <Color #f13600>, <Color #e36500>, <Color #d58e00>, <Color #c7b000>, <Color #a4b800>, <Color #72aa00>, <Color #459c00>, <Color #208e00>, <Color green>]
+# [<Color red>, <Color #f13WINDOW_HEIGHT>, <Color #e36500>, <Color #d58e00>, <Color #c7b000>, <Color #a4bWINDOW_WIDTH>, <Color #72aa00>, <Color #459c00>, <Color #208e00>, <Color green>]
 
 class Game:
     def __init__(self) -> None:
@@ -22,54 +24,63 @@ class Game:
 
         pygame.init()
         pygame.display.set_caption('Triangulation')
-        self.window = pygame.display.set_mode((800, 600))
+        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
-        self.background = pygame.Surface((800, 600))
+        self.background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
         self.background.fill(pygame.Color('#000000'))
-        pygame.draw.rect(self.background, 'grey', rect=(0, 0, 700, 600), width=700)
+        pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
 
-        self.manager = pygame_gui.UIManager((800, 600))
-        self.optimize_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 25), (100, 50)),
+        self.manager = pygame_gui.UIManager((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.optimize_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 25), (100, 50)),
                                                  text='Optimize',
                                                  manager = self.manager)
-        self.redraw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 75), (100, 50)),
+        self.redraw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 75), (100, 50)),
                                                  text='Redraw',
                                                  manager = self.manager)
-        self.save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 125), (100, 50)),
+        self.save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 125), (100, 50)),
                                                  text='Save',
                                                  manager = self.manager)
-        self.load_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 175), (100, 50)),
+        self.load_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 175), (100, 50)),
                                                         text='Load',
                                                         manager=self.manager)
-        self.colorize_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 225), (100, 50)),
+        self.colorize_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 225), (100, 50)),
                                                         text='Related',
                                                         manager=self.manager)
-        self.clear_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 275), (100, 50)),
+        self.clear_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 275), (100, 50)),
                                                         text='Clear',
                                                         manager=self.manager)
-        self.calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 325), (100, 50)),
+        self.calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 325), (100, 50)),
                                                          text='Calc',
                                                          manager=self.manager)
-        self.flip_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 375), (100, 50)),
+        self.flip_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 375), (100, 50)),
                                                         text='Flip',
                                                         manager=self.manager)
-        self.line_center_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 425), (100, 50)),
+        self.line_center_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 425), (100, 50)),
                                                           text='Lines center',
                                                           manager=self.manager)
-        self.height_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 475), (100, 50)),
+        self.height_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 475), (100, 50)),
                                                                text='Height',
                                                                manager=self.manager)
-        self.mpl_draw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((700, 525), (100, 50)),
+        self.mpl_draw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 525), (100, 50)),
                                                           text='mpl_draw',
                                                           manager=self.manager)
 
         self.menu = None
 
+        self.projection_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
+        self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
+        self.rot_x = np.array(
+            [[1, 0, 0], [0, cos(self.angle_x), -sin(self.angle_x)], [0, sin(self.angle_x), cos(self.angle_x)]])
+        self.rot_y = np.array(
+            [[cos(self.angle_y), 0, sin(self.angle_y)], [0, 1, 0], [-sin(self.angle_y), 0, cos(self.angle_y)]])
+        self.rot_z = np.array(
+            [[cos(self.angle_z), -sin(self.angle_z), 0], [sin(self.angle_z), cos(self.angle_z), 0], [0, 0, 1]])
+
     def new_point(self, pos = None) -> None:
         if pos == None:
             pos = pygame.mouse.get_pos()
-        if pos[0] < 700:
+        if pos[0] < WINDOW_WIDTH * 7//8:
             NewPoint = Point(list(pos))
             if NewPoint not in self.points:
                 self.points.append(NewPoint)
@@ -172,12 +183,23 @@ class Game:
 
     def optimize(self) -> None:
         for i in range(len(self.triangles)):
+            count = 0
             for j in range(i, len(self.triangles)):
+                if count == 3:
+                    break
                 if self.triangles[j].is_related(self.triangles[i]):
+                    count += 1
                     for p in self.triangles[i].points:
                         if p not in self.triangles[j].points:
                             outer_p = p
-                    if Line(self.triangles[j].center, outer_p).length >= self.triangles[i].R():
+                    x = outer_p.coord[0]
+                    y = outer_p.coord[1]
+                    det = []
+                    for p in self.triangles[i].points:
+                        l = [(p[0] - x) ** 2 + (p[1] - y) ** 2, p[0] - x, p[1] - y]
+                        det.append(l)
+                    det = np.array(det)
+                    if np.linalg.det(det) == 0:
                         self.flip(self.triangles[i], self.triangles[j])
         print('=========================Done!=========================')
         #yield True
@@ -188,8 +210,30 @@ class Game:
         #opt = self.optimize()
 
         while is_running:
+            self.rot_x = np.array(
+                [[1, 0, 0], [0, cos(self.angle_x), -sin(self.angle_x)], [0, sin(self.angle_x), cos(self.angle_x)]])
+            self.rot_y = np.array(
+                [[cos(self.angle_y), 0, sin(self.angle_y)], [0, 1, 0], [-sin(self.angle_y), 0, cos(self.angle_y)]])
+            self.rot_z = np.array(
+                [[cos(self.angle_z), -sin(self.angle_z), 0], [sin(self.angle_z), cos(self.angle_z), 0], [0, 0, 1]])
+            clock.tick(60)
             time_delta = clock.tick(60) / 1000.0
             for event in pygame.event.get():
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_a]:
+                    self.angle_y += ROTATE_SPEED
+                if keys[pygame.K_d]:
+                    self.angle_y -= ROTATE_SPEED
+                if keys[pygame.K_w]:
+                    self.angle_x += ROTATE_SPEED
+                if keys[pygame.K_s]:
+                    self.angle_x -= ROTATE_SPEED
+                if keys[pygame.K_q]:
+                    self.angle_z += ROTATE_SPEED
+                if keys[pygame.K_e]:
+                    self.angle_z -= ROTATE_SPEED
+                if keys[pygame.K_r]:
+                    self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
                 if event.type == pygame.QUIT:
                     is_running = False
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -216,7 +260,7 @@ class Game:
                         self.menu = None
                         self.load(path)
                     if self.calc_button.check_pressed():
-                        self.calc(0, 600)
+                        self.calc(0, WINDOW_HEIGHT)
                     if self.flip_button.check_pressed():
                         self.optimize()
                         self.redraw(from_scracth = True)
@@ -229,7 +273,8 @@ class Game:
                         print(self.triangles[0].integral(self.triangles[0].points[2]))
                         self.redraw(from_scracth = True)
                     if self.mpl_draw_button.check_pressed():
-                        self.mpl_draw()
+                        self.angle_x += 100
+                        print(self.points[0].project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)[:2])
 
                 self.manager.process_events(event)
 
@@ -237,23 +282,31 @@ class Game:
 
             self.redraw()
 
-    def redraw(self, from_scracth = False) -> None:
+    def redraw(self, from_scracth = True) -> None:
         if from_scracth == True:
             for p in self.points:
                 p.clean()
             self.lines = []
-            self.background = pygame.Surface((800, 600))
+            self.background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
             self.background.fill(pygame.Color('#000000'))
-            pygame.draw.rect(self.background, 'grey', rect=(0, 0, 700, 600), width=700)
+            pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
             for point in self.points:
-                pygame.draw.circle(self.background, 'black', point.coord, 4)
+                xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)
+                x = xy[0]
+                y = xy[1]
+                pygame.draw.circle(self.background, 'black', (x, y), 4)
                 for related_p in point.related:
                     NewLine = Line(point, related_p)
                     if NewLine not in self.lines:
                         if all([not line.intersect(NewLine) for line in self.lines]):
                             self.lines.append(NewLine)
-                            pygame.draw.aaline(self.background, 'black',
-                                             point.coord, related_p.coord, 1)
+                            p_xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)
+                            p_x = p_xy[0]
+                            p_y = p_xy[1]
+                            rel_p_xy = related_p.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)
+                            rel_p_x = rel_p_xy[0]
+                            rel_p_y = rel_p_xy[1]
+                            pygame.draw.aaline(self.background, 'black', (p_x, p_y), (rel_p_x, rel_p_y), 1)
 
         self.triangles_creation()
         self.window.blit(self.background, (0, 0))
@@ -303,10 +356,10 @@ class Game:
         for i in range(len(calcul)):
             kal = (calcul[i] + min_calcul) / max_calcul
             pygame.draw.circle(self.background, (kal * 255, 0, (1-kal) * 255), self.triangles[i].center.coord, 4)
-        #c2 = (600 ** 3 / 3 + 600 ** 6 / (5 * (1 - 600 ** 3 / 3))) / (
-        #            1 - 600 ** 3 / 3 - 600 ** 6 / (5 * (1 - 600 ** 3 / 3)))
-        #c1 = 600 * (1 + c2) / (1 - 600 ** 3 / 3)
-        #analyt_sol = [1 + x ** 2 * c1 + c2 for x in range(0, 600, int(600/N))]
+        #c2 = (WINDOW_HEIGHT ** 3 / 3 + WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3))) / (
+        #            1 - WINDOW_HEIGHT ** 3 / 3 - WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3)))
+        #c1 = WINDOW_HEIGHT * (1 + c2) / (1 - WINDOW_HEIGHT ** 3 / 3)
+        #analyt_sol = [1 + x ** 2 * c1 + c2 for x in range(0, WINDOW_HEIGHT, int(WINDOW_HEIGHT/N))]
         #delta = sum([np.linalg.norm(analyt_sol[i] - calcul[i]) for i in range(0, N)]) / sum(
         #    [np.linalg.norm(analyt_sol[i]) for i in range(0, N)])
 
@@ -328,13 +381,9 @@ class Game:
                     temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
             A.append(temp)
         A = np.array(A) + np.eye(len(A))
-        q = Point([350, 300])
+        q = Point([0, 0])
         pygame.draw.circle(self.background, 'black', q.coord, 10)
         f_vec = [f(i.center, q) for i in self.triangles]
         return [A, f_vec]
 
-    def mpl_draw(self):
-        x = [p[0] for p in self.points]
-        y = [p[1] for p in self.points]
-        plt.plot(x, y, '-o')
-        plt.show()
+
