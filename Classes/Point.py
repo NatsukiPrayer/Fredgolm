@@ -11,12 +11,21 @@ class Point:
         self.coord = self.coordinates[:2]
         self.related = []
 
-    def project(self, rot_x: np.array, rot_y: np.array, rot_z: np.array, proj_matrix: np.array) -> np.array:
+    def project(self, rot_x: np.array, rot_y: np.array, rot_z: np.array, proj_matrix: np.array, scale = 100) -> np.array:
         np_coord = np.array(self.coordinates)
         rotate_x = rot_x @ np_coord
         rotate_y = rot_y @ rotate_x
         rotate_z = rot_z @ rotate_y
-        return proj_matrix @ rotate_z
+        return (proj_matrix @ rotate_z) * scale
+
+    def inv_project(self, coordinates: list[float], rot_x: np.array,
+                    rot_y: np.array, rot_z: np.array, scale = 100) -> np.array:
+        np_coord = np.array(coordinates)
+        rev_rotate_z = np.linalg.inv(rot_z) @ np_coord
+        rev_rotate_y = np.linalg.inv(rot_y) @ rev_rotate_z
+        rev_rotate_x = np.linalg.inv(rot_x) @ rev_rotate_y
+        return list(rev_rotate_x)
+
 
     def __sub__(self, other: "Point") -> "Point":
         if len(self.coord) == len(other.coord):

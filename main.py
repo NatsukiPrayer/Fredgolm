@@ -7,18 +7,14 @@ from settings import *
 
 # Press the green button in the gutter to run the script.
 if __name__ == "__main__":
-    r = 90000
+    r = 9
     rs = r ** (1/2)
-    points = [[WORKING_SPACE_WIDTH_HALF, WORKING_SPACE_HEIGHT_HALF]] + \
-             [[cos(i*pi/8) * rs + WORKING_SPACE_WIDTH_HALF,
-               sin(i*pi/8) * rs + WORKING_SPACE_HEIGHT_HALF] for i in range(0, 16)]
+    points = [[0, 0]] + \
+             [[cos(i*pi/8) * rs,
+               sin(i*pi/8) * rs] for i in range(0, 16)]
     circle = [Point(point) for point in points]
     with open('Mikhail.gg', 'w') as f:
         f.write('\n'.join(map(str, circle)))
-    c2 = (600**3 / 3 + 600**6 / (5 * (1 + 600**3 / 3))) / (1 - 600**3 / 3 - 600**6 / (5 * (1 + 600**3 / 3)))
-    c1 = 600 * (1 + c2) / (1 + 600**3 / 3)
-    analyt_sol = lambda x: 1 + x**2 * c1 + c2
-    print(c1, '\n', c2)
     Window = Game()
     Window.run()
 
