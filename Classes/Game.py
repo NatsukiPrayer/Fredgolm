@@ -106,26 +106,19 @@ class Game:
                     break
 
             for point in self.points[:-1]:
-                NewLine = Line(point, NewPoint)
-                if len(self.triangles) > 0:
-                    if all([NewLine.isect_line_plane_v3_4d(t) is None for t in self.triangles]):
-                        self.lines.append(NewLine)
-                        NewPoint.related.append(point)
-                        point.related.append(NewPoint)
-                        pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
-                    else:
-                        if all([not line.intersect(NewLine) for line in self.lines]):
-                            self.lines.append(NewLine)
-                            NewPoint.related.append(point)
-                            point.related.append(NewPoint)
-                            pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
-
-                elif all([not line.intersect(NewLine) for line in self.lines]):
+                NewLine = Line(NewPoint, point)
+                if all([NewLine.isect_line_plane_v3_4d(t) is None for t in self.triangles]):
+                    #if all([not line.intersect(NewLine) for line in self.lines]):
                     self.lines.append(NewLine)
                     NewPoint.related.append(point)
                     point.related.append(NewPoint)
-                    pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
 
+                # elif all([not line.intersect(NewLine) for line in self.lines]):
+                #     self.lines.append(NewLine)
+                #     NewPoint.related.append(point)
+                #     point.related.append(NewPoint)
+                #     pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
+            self.triangles_creation()
 
     def triangles_creation(self) -> None:
         self.triangles = []
@@ -135,13 +128,8 @@ class Game:
                     if point in next_next_point.related:
                         NewTriangle = Triangle(point, next_point, next_next_point)
                         if NewTriangle not in self.triangles:
-                            self.triangles.append(NewTriangle)
-
-        for t in self.triangles:
-            for point in self.points:
-                if t.is_in(point):
-                    self.triangles.remove(t)
-                    break
+                            if all(not NewTriangle.is_in(p) for p in self.points):
+                                self.triangles.append(NewTriangle)
 
     def rel(self) -> None:
         print('===========================')
@@ -316,7 +304,7 @@ class Game:
         if from_scracth == True:
             for p in self.points:
                 p.clean()
-            self.lines = []
+            #self.lines = []
             self.background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
             self.background.fill(pygame.Color('#000000'))
             pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
@@ -325,23 +313,28 @@ class Game:
                 x = xy[0]
                 y = xy[1]
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
-                for related_p in point.related:
-                    NewLine = Line(point, related_p)
-                    if NewLine not in self.lines:
-                        if all([not line.intersect(NewLine) for line in self.lines]):
-                            self.lines.append(NewLine)
-                            p_xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
-                            p_x = p_xy[0]
-                            p_y = p_xy[1]
-                            rel_p_xy = related_p.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
-                            rel_p_x = rel_p_xy[0]
-                            rel_p_y = rel_p_xy[1]
-                            pygame.draw.aaline(self.background, 'black', (p_x + WORKING_SPACE_WIDTH_HALF,
-                                                                          p_y + WORKING_SPACE_HEIGHT_HALF),
-                                               (rel_p_x + WORKING_SPACE_WIDTH_HALF,
-                                                rel_p_y + WORKING_SPACE_HEIGHT_HALF), 1)
+                # for related_p in point.related:
+                #     NewLine = Line(point, related_p)
+                #     if NewLine not in self.lines:
+                #         if all([not line.intersect(NewLine) for line in self.lines]):
+                #             self.lines.append(NewLine)
+                #             p_xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+                #             p_x = p_xy[0]
+                #             p_y = p_xy[1]
+                #             rel_p_xy = related_p.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+                #             rel_p_x = rel_p_xy[0]
+                #             rel_p_y = rel_p_xy[1]
+                #             pygame.draw.aaline(self.background, 'black', (p_x + WORKING_SPACE_WIDTH_HALF,
+                #                                                           p_y + WORKING_SPACE_HEIGHT_HALF),
+                #                                (rel_p_x + WORKING_SPACE_WIDTH_HALF,
+                #                                 rel_p_y + WORKING_SPACE_HEIGHT_HALF), 1)
+                for line in self.lines:
+                    p = [el.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale) for el in line.points]
+                    pygame.draw.aaline(self.background, 'black', (p[0][0] + WORKING_SPACE_WIDTH_HALF,
+                                                                    p[0][1] + WORKING_SPACE_HEIGHT_HALF),
+                                                                    (p[1][0] + WORKING_SPACE_WIDTH_HALF,
+                                                                    p[1][1] + WORKING_SPACE_HEIGHT_HALF), 1)
 
-        self.triangles_creation()
         self.window.blit(self.background, (0, 0))
         self.manager.draw_ui(self.window)
         pygame.display.update()

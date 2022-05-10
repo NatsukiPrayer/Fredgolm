@@ -1,7 +1,7 @@
 from Classes.Point import Point
 from Classes.Lines import Line
 import numpy as np
-from math import log, tan, acos
+from math import log, tan, acos, pi, isclose
 
 class Triangle:
 
@@ -98,7 +98,10 @@ class Triangle:
         d = -x1 * x - y1 * y - z1 * z
         return [x, y, z, d]
 
-    def is_in(self, point: Point, eps = 10 ** -4) -> bool:
+    def is_in(self, point: Point) -> bool:
+        if point in self.points:
+            return False
+
         x1, y1, z1 = self.points[0]
         x2, y2, z2 = self.points[1]
         x3, y3, z3 = self.points[2]
@@ -107,9 +110,25 @@ class Triangle:
                                 [y1, y2, y3, y4],
                                 [z1, z2, z3, z4],
                                 [1, 1, 1, 1]]))
-        if abs(res) > eps:
-            if point in self.points:
+        if res == 0:
+            a = Line(point, self.points[0])
+            b = Line(point, self.points[1])
+            c = Line(point, self.points[2])
+            if isclose(a.arcos_angle_between(b) +
+                       b.arcos_angle_between(c) +
+                       c.arcos_angle_between(a), 2*pi, rel_tol=10**-2):
+                return True
+            else:
                 return False
+
+            u = np.array(b.coordinates) @ np.array(c.coordinates)
+            v = np.array(c.coordinates) @ np.array(a.coordinates)
+            w = np.array(a.coordinates) @ np.array(b.coordinates)
+            if np.dot(u, w) < 0 or np.dot(u, v) < 0:
+                return False
+            else:
+                return True
+
             squares = []
             t_square = self.square()
             for i in range(len(self.points)):

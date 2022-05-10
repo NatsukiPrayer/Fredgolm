@@ -71,7 +71,7 @@ class Point:
         self.related = new_related
 
     def __repr__(self) -> None:
-        return ' '.join(map(str, self.coord))
+        return self.name
 
     def __str__(self) -> str:
         return self.__repr__()
