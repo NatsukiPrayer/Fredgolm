@@ -2,6 +2,7 @@ from numpy import real
 from Classes.Point import Point
 from math import isclose
 import numpy as np
+from typing import Union
 
 class Line:
     def __init__(self, p1: Point, p2: Point) -> None:
@@ -39,6 +40,29 @@ class Line:
             return True
         return False
 
+    def isect_line_plane_v3_4d(self, triangle, epsilon=1e-6):
+        plane = np.array(triangle.get_4d())
+        p0 = self.points[0]
+        p1 = self.points[1]
+
+        u = p1 - p0
+        dot = np.dot(p0.coordinates, p1.coordinates)
+
+        if abs(dot) > epsilon:
+            # Calculate a point on the plane
+            # (divide can be omitted for unit hessian-normal form).
+            p_co = Point(list(plane * -plane[3] / np.dot(plane, plane)))
+
+            w = p0 - p_co
+            fac = -1 * np.dot(plane[:3], w.coordinates) / dot
+            u = u * fac
+            intersect_p = p0 + u
+            if intersect_p not in triangle.points:
+                if fac > 0 and fac < 1:
+                    if triangle.is_in(intersect_p):
+                        return p0 + u
+
+        return None
 
     def intersect(self, other: "Line") -> bool:
         if any([x == y for x in self.points for y in other.points]):
@@ -61,6 +85,9 @@ class Line:
         intersect_p = Point(coord)
 
         return Line.is_close(self, intersect_p) and Line.is_close(other, intersect_p)
+
+    def same_surf(self):
+        pass
 
     def isBetween(self, c: Point) -> bool:
         # compare versus epsilon for floating point values, or != 0 if using integers

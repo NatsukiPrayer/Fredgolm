@@ -65,7 +65,6 @@ class Game:
         self.mpl_draw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 525), (100, 50)),
                                                           text='mpl_draw',
                                                           manager=self.manager)
-
         self.menu = None
 
         self.projection_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
@@ -76,15 +75,19 @@ class Game:
             [[cos(self.angle_y), 0, sin(self.angle_y)], [0, 1, 0], [-sin(self.angle_y), 0, cos(self.angle_y)]])
         self.rot_z = np.array(
             [[cos(self.angle_z), -sin(self.angle_z), 0], [sin(self.angle_z), cos(self.angle_z), 0], [0, 0, 1]])
+        self.scale = 100
 
     def new_point(self, pos, isclicked = False) -> None:
         if isclicked:
-            pos = [(pos[0] - WORKING_SPACE_WIDTH_HALF)/SCALE, (pos[1] - WORKING_SPACE_HEIGHT_HALF)/SCALE]
-
+            pos = [(pos[0] - WORKING_SPACE_WIDTH_HALF)/self.scale, (pos[1] - WORKING_SPACE_HEIGHT_HALF)/self.scale]
         NewPoint = Point(list(pos))
         NewPoint = Point(NewPoint.inv_project(NewPoint.coordinates, self.rot_x, self.rot_y, self.rot_z))
         print(NewPoint)
         if NewPoint not in self.points:
+            if len(self.points) == 0:
+                NewPoint.name = '0'
+            else:
+                NewPoint.name = str(len(self.points))
             self.points.append(NewPoint)
             pygame.draw.circle(self.background, 'black', pos, 4)
             for line in self.lines:
@@ -104,11 +107,25 @@ class Game:
 
             for point in self.points[:-1]:
                 NewLine = Line(point, NewPoint)
-                if all([not line.intersect(NewLine) for line in self.lines]):
+                if len(self.triangles) > 0:
+                    if all([NewLine.isect_line_plane_v3_4d(t) is None for t in self.triangles]):
+                        self.lines.append(NewLine)
+                        NewPoint.related.append(point)
+                        point.related.append(NewPoint)
+                        pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
+                    else:
+                        if all([not line.intersect(NewLine) for line in self.lines]):
+                            self.lines.append(NewLine)
+                            NewPoint.related.append(point)
+                            point.related.append(NewPoint)
+                            pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
+
+                elif all([not line.intersect(NewLine) for line in self.lines]):
                     self.lines.append(NewLine)
                     NewPoint.related.append(point)
                     point.related.append(NewPoint)
                     pygame.draw.aaline(self.background, 'black', point.coord, NewPoint.coord, 1)
+
 
     def triangles_creation(self) -> None:
         self.triangles = []
@@ -240,9 +257,17 @@ class Game:
                 if event.type == pygame.QUIT:
                     is_running = False
                 if event.type == pygame.MOUSEBUTTONUP:
-                    pos = pygame.mouse.get_pos()
-                    if pos[0] < WORKING_SPACE_WIDTH:
-                        self.new_point(pos, isclicked=True)
+                    if event.button == 1:
+                        pos = pygame.mouse.get_pos()
+                        if pos[0] < WORKING_SPACE_WIDTH:
+                            self.new_point(pos, isclicked=True)
+                    elif event.button == 4:
+                        if self.scale < 300:
+                            self.scale += 7
+                    elif event.button == 5:
+                        if self.scale > 8:
+                            self.scale -= 7
+
                 if event.type == pygame_gui.UI_BUTTON_PRESSED:
                     if self.redraw_button.check_pressed():
                         self.redraw(from_scracth=True)
@@ -296,7 +321,7 @@ class Game:
             self.background.fill(pygame.Color('#000000'))
             pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
             for point in self.points:
-                xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)
+                xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
                 x = xy[0]
                 y = xy[1]
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
@@ -305,10 +330,10 @@ class Game:
                     if NewLine not in self.lines:
                         if all([not line.intersect(NewLine) for line in self.lines]):
                             self.lines.append(NewLine)
-                            p_xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)
+                            p_xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
                             p_x = p_xy[0]
                             p_y = p_xy[1]
-                            rel_p_xy = related_p.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)
+                            rel_p_xy = related_p.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
                             rel_p_x = rel_p_xy[0]
                             rel_p_y = rel_p_xy[1]
                             pygame.draw.aaline(self.background, 'black', (p_x + WORKING_SPACE_WIDTH_HALF,

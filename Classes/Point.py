@@ -10,6 +10,7 @@ class Point:
         self.coordinates = coord
         self.coord = self.coordinates[:2]
         self.related = []
+        self.name = ''
 
     def project(self, rot_x: np.array, rot_y: np.array, rot_z: np.array, proj_matrix: np.array, scale = 100) -> np.array:
         np_coord = np.array(self.coordinates)
@@ -47,11 +48,11 @@ class Point:
 
     def __getitem__(self, item: int) -> float:
         try:
-            self.coord[item]
+            self.coordinates[item]
         except Exception as e:
             raise e
         else:
-            return self.coord[item]
+            return self.coordinates[item]
 
     def __ne__(self, other: "Point") -> bool:
         if self.coord != other:
