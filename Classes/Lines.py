@@ -35,59 +35,82 @@ class Line:
         if isclose(
                 line.length,
                 line[0].distance(intersect_p) + line[1].distance(intersect_p),
-                rel_tol=tol,
+                abs_tol=tol,
         ):
             return True
         return False
 
-    def isect_line_plane_v3_4d(self, triangle, epsilon=1e-6):
-        plane = np.array(triangle.get_4d())
-        p0 = self.points[0]
-        p1 = self.points[1]
+    def isect_line_plane_v3_4d(self, triangle, epsilon=1e-6, **kwargs):
+        flag = False
+        if self.points[0].idd == 6 and self.points[1].idd == 0:
+            print()
+            flag = True
+        p_no = np.array(triangle.get_4d())[:3]
+        p0 = np.array(self.points[0].coordinates)
+        p1 = np.array(self.points[1].coordinates)
 
         u = p1 - p0
-        dot = np.dot(p0.coordinates, p1.coordinates)
+        if u @ p_no == 0:
+            return any([self.intersect(line) for line in triangle.lines()])
+
+        dot = np.dot(p_no, u)
 
         if abs(dot) > epsilon:
             # Calculate a point on the plane
             # (divide can be omitted for unit hessian-normal form).
-            p_co = Point(list(plane * -plane[3] / np.dot(plane, plane)))
+            p_co = np.array(triangle.points[0].coordinates)
 
             w = p0 - p_co
-            fac = -1 * np.dot(plane[:3], w.coordinates) / dot
+            fac = -1 * np.dot(p_no, w) / dot
             u = u * fac
-            intersect_p = p0 + u
-            if intersect_p not in triangle.points:
-                if fac > 0 and fac < 1:
-                    if triangle.is_in(intersect_p):
-                        return p0 + u
+            intersect_p = Point(list(p0 + u))
+            if 0 < fac < 1:
+                if triangle.is_in(intersect_p):
+                    if flag:
+                        print('<<<>>>')
+                        print(triangle.id)
 
-        return None
+                    return True
+        return False
 
     def intersect(self, other: "Line") -> bool:
-        if any([x == y for x in self.points for y in other.points]):
-            return False
-        denom = (other[1][1] - other[0][1]) * (self[1][0] - self[0][0]) - (
-            other[1][0] - other[0][0]
-        ) * (self[1][1] - self[0][1])
-        if denom == 0:
-            return False
+        x1, y1, z1 = self.points[0]
+        x2, y2, z2 = self.points[1]
+        x3, y3, z3 = other.points[0]
+        x4, y4, z4 = other.points[1]
+        res = np.linalg.det(np.array([[x2 - x1, y2 - y1, z2 - z1],
+                                [x3 - x1, y3 - y1, z3 - z1],
+                                [x4 - x1, y4 - y1, z4 - z1]]))
+        if res == 0:
+            if any([x == y for x in self.points for y in other.points]):
+                return False
+            denom = (other[1][1] - other[0][1]) * (self[1][0] - self[0][0]) - (
+                other[1][0] - other[0][0]
+            ) * (self[1][1] - self[0][1])
+            if denom == 0:
+                return False
 
-        numer = (other[1][0] - other[0][0]) * (self[0][1] - other[0][1]) - (
-            other[1][1] - other[0][1]
-        ) * (self[0][0] - other[0][0])
-        res = numer / denom
+            numer = (other[1][0] - other[0][0]) * (self[0][1] - other[0][1]) - (
+                other[1][1] - other[0][1]
+            ) * (self[0][0] - other[0][0])
+            res = numer / denom
 
-        coord = [
-            self[0][0] + res * (self[1][0] - self[0][0]),
-            self[0][1] + res * (self[1][1] - self[0][1]),
-        ]
-        intersect_p = Point(coord)
+            coord = [
+                self[0][0] + res * (self[1][0] - self[0][0]),
+                self[0][1] + res * (self[1][1] - self[0][1]),
+                self[0][2] + res * (self[1][2] - self[0][2])
+            ]
+            intersect_p = Point(coord)
 
-        return Line.is_close(self, intersect_p) and Line.is_close(other, intersect_p)
+            return Line.is_close(self, intersect_p) and Line.is_close(other, intersect_p)
+        return False
 
     def same_surf(self):
         pass
+
+    def triple_prod(self, v1: "Line", v2: "Line") -> float:
+        cross = np.array((v1[1] - v1[0]).coordinates) @ np.array((v2[1] - v2[0]).coordinates)
+        return np.linalg.dot(np.array((self[1] - self[0]).coordinates), cross)
 
     def isBetween(self, c: Point) -> bool:
         # compare versus epsilon for floating point values, or != 0 if using integers

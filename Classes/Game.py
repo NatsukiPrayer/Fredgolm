@@ -6,6 +6,7 @@ import pygame_gui
 from Classes.Point import Point
 from Classes.Lines import Line
 from Classes.Triangle import Triangle
+from Classes.Tetrahedron import Tetrahedron
 import numpy as np
 from math import pi, cos, sin
 from settings import *
@@ -17,10 +18,15 @@ import numpy as np
 # [<Color red>, <Color #f13WINDOW_HEIGHT>, <Color #e36500>, <Color #d58e00>, <Color #c7b000>, <Color #a4bWINDOW_WIDTH>, <Color #72aa00>, <Color #459c00>, <Color #208e00>, <Color green>]
 
 class Game:
+    mstate = True
+
     def __init__(self) -> None:
         self.points = []
         self.lines = []
         self.triangles = []
+        self.tetrahedron = []
+
+        self.fredgolm_flag = False
 
         pygame.init()
         pygame.display.set_caption('Triangulation')
@@ -51,7 +57,7 @@ class Game:
                                                         text='Clear',
                                                         manager=self.manager)
         self.calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 325), (100, 50)),
-                                                         text='Calc',
+                                                         text='Show solution',
                                                          manager=self.manager)
         self.flip_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 375), (100, 50)),
                                                         text='Flip',
@@ -65,6 +71,11 @@ class Game:
         self.mpl_draw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 525), (100, 50)),
                                                           text='mpl_draw',
                                                           manager=self.manager)
+
+        # self.save_text_line_button = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(
+        #                                         relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 575), (100, 50)),
+        #                                         manager=self.manager)
+
         self.menu = None
 
         self.projection_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
@@ -80,38 +91,44 @@ class Game:
     def new_point(self, pos, isclicked = False) -> None:
         if isclicked:
             pos = [(pos[0] - WORKING_SPACE_WIDTH_HALF)/self.scale, (pos[1] - WORKING_SPACE_HEIGHT_HALF)/self.scale]
-        NewPoint = Point(list(pos))
-        NewPoint = Point(NewPoint.inv_project(NewPoint.coordinates, self.rot_x, self.rot_y, self.rot_z))
+            NewPoint = Point(list(pos))
+            NewPoint = Point(NewPoint.inv_project(NewPoint.coordinates, self.rot_x, self.rot_y, self.rot_z))
+        else:
+            NewPoint = Point(list(pos))
         print(NewPoint)
         if NewPoint not in self.points:
-            if len(self.points) == 0:
-                NewPoint.name = '0'
-            else:
-                NewPoint.name = str(len(self.points))
+            NewPoint.idd = len(self.points)
             self.points.append(NewPoint)
-            pygame.draw.circle(self.background, 'black', pos, 4)
-            for line in self.lines:
-                if Line.is_close(line, NewPoint, tol=1e-3):
-                    line[0].related.remove(line[1])
-                    line[1].related.remove(line[0])
-                    NewPoint.related.append(line[0])
-                    NewPoint.related.append(line[1])
-                    self.points[self.points.index(line[0])].related.append(NewPoint)
-                    self.points[self.points.index(line[0])].clean()
-
-                    self.points[self.points.index(line[1])].related.append(NewPoint)
-                    self.points[self.points.index(line[1])].clean()
-
-                    self.lines.remove(line)
-                    break
+            #pygame.draw.circle(self.background, 'black', pos, 4)
+            # for line in self.lines:
+            #     if Line.is_close(line, NewPoint, tol=1e-3):
+            #         line[0].related.remove(line[1])
+            #         line[1].related.remove(line[0])
+            #         NewPoint.related.append(line[0])
+            #         NewPoint.related.append(line[1])
+            #         self.points[self.points.index(line[0])].related.append(NewPoint)
+            #         self.points[self.points.index(line[0])].clean()
+            #
+            #         self.points[self.points.index(line[1])].related.append(NewPoint)
+            #         self.points[self.points.index(line[1])].clean()
+            #
+            #         self.lines.remove(line)
+            #         break
 
             for point in self.points[:-1]:
                 NewLine = Line(NewPoint, point)
-                if all([NewLine.isect_line_plane_v3_4d(t) is None for t in self.triangles]):
-                    #if all([not line.intersect(NewLine) for line in self.lines]):
+                if len(self.triangles) == 0:
                     self.lines.append(NewLine)
                     NewPoint.related.append(point)
                     point.related.append(NewPoint)
+                    continue
+                temp = self.triangles[3] if len(self.triangles) > 2 else self.triangles[0]
+                if not any([NewLine.isect_line_plane_v3_4d(t) for t in self.triangles]):
+                    #if all([not line.intersect(NewLine) for line in self.lines]):
+                    if point not in NewPoint.related:
+                        self.lines.append(NewLine)
+                        NewPoint.related.append(point)
+                        point.related.append(NewPoint)
 
                 # elif all([not line.intersect(NewLine) for line in self.lines]):
                 #     self.lines.append(NewLine)
@@ -121,15 +138,30 @@ class Game:
             self.triangles_creation()
 
     def triangles_creation(self) -> None:
-        self.triangles = []
+        point = self.points[-1]
+        for t in self.triangles:
+            if t.is_in(point):
+                self.triangles.remove(t)
+        for next_point in point.related:
+            for next_next_point in next_point.related:
+                if point in next_next_point.related:
+                    NewTriangle = Triangle(point, next_point, next_next_point)
+                    if NewTriangle not in self.triangles:
+                        self.triangles.append(NewTriangle)
+
+    def tetrahedron_creation(self) -> None:
+        self.tetrahedron_creation()
         for point in self.points:
             for next_point in point.related:
                 for next_next_point in next_point.related:
-                    if point in next_next_point.related:
-                        NewTriangle = Triangle(point, next_point, next_next_point)
-                        if NewTriangle not in self.triangles:
-                            if all(not NewTriangle.is_in(p) for p in self.points):
-                                self.triangles.append(NewTriangle)
+                    for next_next_next_point in next_next_point.related:
+                        if all([p in next_next_next_point.related for p in [point, next_point]]):
+                            NewTetrahedron = Tetrahedron(point,
+                                                         next_point,
+                                                         next_next_point,
+                                                         next_next_next_point)
+                            if NewTetrahedron not in self.tetrahedron:
+                                self.tetrahedron.append(NewTetrahedron)
 
     def rel(self) -> None:
         print('===========================')
@@ -145,18 +177,21 @@ class Game:
             print(len(self.triangles))
 
     def clear(self) -> None:
+        for p in self.points:
+            del p
         self.points = []
         self.lines = []
         self.triangles = []
+        self.fredgolm_flag = False
+        self.calc_button.set_text('Show solution')
         self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
-        self.redraw(from_scracth = True)
 
     def divide(self) -> None:
         min_square = min([t.square() for t in self.triangles])
         for t in self.triangles:
             diff = t.square() / min_square
-            if diff > 3:
-                self.new_point(t.center.coord)
+            if diff > 2:
+                self.new_point(t.center.coordinates)
 
     def line_center(self) -> None:
         existing_lines = self.lines.copy()
@@ -217,6 +252,15 @@ class Game:
         is_running = True
         #opt = self.optimize()
 
+        points = [
+            (-2.37,0.78,0),
+            (0.12,0.56,0),
+            (-0.92,-0.96,0),
+            (-1.01,-0.23626225357012395,3.331633255257542),
+            (2.6,-0.65,2.02)
+        ]
+        for p in points:
+            self.new_point(p)
         while is_running:
             self.rot_x = np.array(
                 [[1, 0, 0], [0, cos(self.angle_x), -sin(self.angle_x)], [0, sin(self.angle_x), cos(self.angle_x)]])
@@ -242,6 +286,15 @@ class Game:
                     self.angle_z -= ROTATE_SPEED
                 if keys[pygame.K_r]:
                     self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
+                if keys[pygame.K_m]:
+                    from time import sleep
+                    if self.mstate:
+                        next(self.gen)
+                    self.mstate = False
+                if event.type == pygame.KEYUP:
+                    print(event.key)
+                    if event.key == 109:
+                        self.mstate = True
                 if event.type == pygame.QUIT:
                     is_running = False
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -250,7 +303,7 @@ class Game:
                         if pos[0] < WORKING_SPACE_WIDTH:
                             self.new_point(pos, isclicked=True)
                     elif event.button == 4:
-                        if self.scale < 300:
+                        if self.scale < 700:
                             self.scale += 7
                     elif event.button == 5:
                         if self.scale > 8:
@@ -266,7 +319,7 @@ class Game:
                         self.divide()
                         self.redraw(True)
                     if self.save_button.check_pressed():
-                        self.save(mode=1)
+                        self.save(mode=0)
                     if self.load_button.check_pressed():
                         self.menu = pygame_gui.windows.UIFileDialog(pygame.Rect((400, 300), (100, 100)), self.manager)
                     if self.colorize_button.check_pressed():
@@ -276,9 +329,15 @@ class Game:
                     if self.menu is not None and event.ui_element == self.menu.ok_button:
                         path = self.menu.current_file_path
                         self.menu = None
+                        #self.gen = self.load(path)
                         self.load(path)
                     if self.calc_button.check_pressed():
-                        self.calc(0, WINDOW_HEIGHT)
+                        if self.fredgolm_flag == False:
+                            self.calc_button.set_text('Hide solution')
+                            self.fredgolm_flag = True
+                        else:
+                            self.calc_button.set_text('Hide solution')
+                            self.fredgolm_flag = False
                     if self.flip_button.check_pressed():
                         self.optimize()
                         self.redraw(from_scracth = True)
@@ -302,16 +361,21 @@ class Game:
 
     def redraw(self, from_scracth = True) -> None:
         if from_scracth == True:
-            for p in self.points:
-                p.clean()
             #self.lines = []
-            self.background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-            self.background.fill(pygame.Color('#000000'))
+            #self.background = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+            #self.background.fill(pygame.Color('#000000'))
             pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
+
+            font = pygame.font.SysFont('arial', 25)
+
             for point in self.points:
+                #text = font.render(str(point.idd), True, (0, 0, 0))
+
                 xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
                 x = xy[0]
                 y = xy[1]
+                # self.background.blit(text,
+                #                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
                 # for related_p in point.related:
                 #     NewLine = Line(point, related_p)
@@ -328,12 +392,23 @@ class Game:
                 #                                                           p_y + WORKING_SPACE_HEIGHT_HALF),
                 #                                (rel_p_x + WORKING_SPACE_WIDTH_HALF,
                 #                                 rel_p_y + WORKING_SPACE_HEIGHT_HALF), 1)
-                for line in self.lines:
-                    p = [el.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale) for el in line.points]
-                    pygame.draw.aaline(self.background, 'black', (p[0][0] + WORKING_SPACE_WIDTH_HALF,
-                                                                    p[0][1] + WORKING_SPACE_HEIGHT_HALF),
-                                                                    (p[1][0] + WORKING_SPACE_WIDTH_HALF,
-                                                                    p[1][1] + WORKING_SPACE_HEIGHT_HALF), 1)
+            for line in self.lines:
+                p = [el.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale) for el in line.points]
+                pygame.draw.aaline(self.background, 'black', (p[0][0] + WORKING_SPACE_WIDTH_HALF,
+                                                             p[0][1] + WORKING_SPACE_HEIGHT_HALF),
+                                                             (p[1][0] + WORKING_SPACE_WIDTH_HALF,
+                                                             p[1][1] + WORKING_SPACE_HEIGHT_HALF), 1)
+
+            # i = 0
+            # font = pygame.font.SysFont('arial', 50)
+            # for triangle in self.triangles:
+            #     text = font.render(str(i), True, (0, 0, 0))
+            #     center = triangle.center.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+            #     self.background.blit(text, (center[0] + WORKING_SPACE_WIDTH_HALF, center[1] + WORKING_SPACE_HEIGHT_HALF))
+            #     i += 1
+
+        if self.fredgolm_flag:
+            self.calc(0, 1)
 
         self.window.blit(self.background, (0, 0))
         self.manager.draw_ui(self.window)
@@ -362,12 +437,14 @@ class Game:
             self.triangles = []
             self.lines = []
             for line in f.readlines():
-                self.new_point(pos = tuple(map(float, line.split())))
-                self.redraw(from_scracth=True)
+                if line[0] == '#':
+                    continue
+                self.new_point(tuple(map(float, line.split())))
+                #yield
 
     def calc(self, a: float, b: float) -> None:
         N = len(self.triangles)
-        A, f = self.find_A(a, b, N)
+        A, f, q = self.find_A(a, b, N)
         calcul = np.linalg.solve(A, f)
         #calcul_num = sorted([[calcul[i], i] for i in range(len(self.triangles))],
                             #key = lambda x: x[0])
@@ -379,9 +456,13 @@ class Game:
         #print(calcul_num)
         min_calcul = abs(min(calcul))
         max_calcul = max(calcul) + min_calcul
+        q_p = q.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+        pygame.draw.circle(self.background, 'black',
+                           (q_p[0] + WORKING_SPACE_WIDTH_HALF, q_p[1] + WORKING_SPACE_HEIGHT_HALF), 10)
         for i in range(len(calcul)):
             kal = (calcul[i] + min_calcul) / max_calcul
-            pygame.draw.circle(self.background, (kal * 255, 0, (1-kal) * 255), self.triangles[i].center.coord, 4)
+            p = self.triangles[i].center.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+            pygame.draw.circle(self.background, (kal * 255, 0, (1-kal) * 255), (p[0] + WORKING_SPACE_WIDTH_HALF, p[1] + WORKING_SPACE_HEIGHT_HALF) ,4)
         #c2 = (WINDOW_HEIGHT ** 3 / 3 + WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3))) / (
         #            1 - WINDOW_HEIGHT ** 3 / 3 - WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3)))
         #c1 = WINDOW_HEIGHT * (1 + c2) / (1 - WINDOW_HEIGHT ** 3 / 3)
@@ -407,9 +488,8 @@ class Game:
                     temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
             A.append(temp)
         A = np.array(A) + np.eye(len(A))
-        q = Point([0, 0])
-        pygame.draw.circle(self.background, 'black', q.coord, 10)
+        q = Point([-6, -4, 0])
         f_vec = [f(i.center, q) for i in self.triangles]
-        return [A, f_vec]
+        return [A, f_vec, q]
 
 

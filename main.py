@@ -9,11 +9,17 @@ from settings import *
 if __name__ == "__main__":
     r = 9
     rs = r ** (1/2)
-    points = [[0, 0]] + \
-             [[cos(i*pi/8) * rs,
-               sin(i*pi/8) * rs] for i in range(0, 16)]
-    circle = [Point(point) for point in points]
-    with open('Mikhail.gg', 'w') as f:
+    x = lambda teth, phi: rs * sin(teth) * cos(phi)
+    y = lambda teth, phi: rs * sin(teth) * sin(phi)
+    z = lambda teth: rs * cos(teth)
+
+    points = [[0, 0, 0]]
+    points2 = [[x(j*pi/8, i*pi/4),
+               y(j*pi/8, i*pi/4),
+               z(j*pi/8)] for i in range(0, 8) for j in range(0, 8)]
+    Mikha = points + points2
+    circle = [Point(point) for point in Mikha]
+    with open('Mikhail_BIG.gg', 'w') as f:
         f.write('\n'.join(map(str, circle)))
     Window = Game()
     Window.run()

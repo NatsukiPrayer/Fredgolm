@@ -14,9 +14,29 @@ class Triangle:
         #     (p1[0] - p3[0]) + (p3[0]**2 + p3[1]**2) * (p1[0] - p2[0])
         x = round((p1[0] + p2[0] + p3[0]) / 3, 2)
         y = round((p1[1] + p2[1] + p3[1]) / 3, 2)
-        self.center = Point([x, y])
+        z = round((p1[2] + p2[2] + p3[2]) / 3, 2)
+        self.center = Point([x, y, z])
         self.color = 0
-        self.name = p1.name + '/' + p2.name + '/' + p3.name
+        #self.name = p1.name + '/' + p2.name + '/' + p3.name
+        self.name = f'{p1.name}/{p2.name}/{p3.name}'
+        self.id = f'{p1.idd}/{p2.idd}/{p3.idd}'
+
+    def orthocenter(self):
+        x1, y1, z1 = self.points[0]
+        x2, y2, z2 = self.points[1]
+        x3, y3, z3 = self.points[2]
+
+        x = np.linalg.det(np.array([[x1**2 + y1**2 + z1**2, y1, z1, 1],
+                      [x2**2 + y2**2 + z2**2, y2, z2, 1],
+                      [x3**2 + y3**2 + z3**3, y3, z3, 1]]))
+
+        y = -1* np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
+                      [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
+                      [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
+
+        z = np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
+                      [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
+                      [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
 
     def points_check(self, other: "Triangle") -> list[bool]:
         return [any([p1 == p2 for p2 in other.points]) for p1 in self.points]
@@ -98,7 +118,7 @@ class Triangle:
         d = -x1 * x - y1 * y - z1 * z
         return [x, y, z, d]
 
-    def is_in(self, point: Point) -> bool:
+    def is_in(self, point: Point, eps = 10 ** -6) -> bool:
         if point in self.points:
             return False
 
@@ -110,16 +130,13 @@ class Triangle:
                                 [y1, y2, y3, y4],
                                 [z1, z2, z3, z4],
                                 [1, 1, 1, 1]]))
-        if res == 0:
+        if abs(res) < eps:
             a = Line(point, self.points[0])
             b = Line(point, self.points[1])
             c = Line(point, self.points[2])
-            if isclose(a.arcos_angle_between(b) +
+            return isclose(a.arcos_angle_between(b) +
                        b.arcos_angle_between(c) +
-                       c.arcos_angle_between(a), 2*pi, rel_tol=10**-2):
-                return True
-            else:
-                return False
+                       c.arcos_angle_between(a), 2*pi, abs_tol=10**-6)
 
             u = np.array(b.coordinates) @ np.array(c.coordinates)
             v = np.array(c.coordinates) @ np.array(a.coordinates)
@@ -157,7 +174,7 @@ class Triangle:
     def area(self) -> float:
         v1 = self.points[1] - self.points[0]
         v2 = self.points[2] - self.points[0]
-        return np.array(v1.coordinates) @ np.array(v2.coordinates) / 2
+        return abs(np.array(v1.coordinates) @ np.array(v2.coordinates) / 2)
 
     def __repr__(self) -> str:
         return self.name
