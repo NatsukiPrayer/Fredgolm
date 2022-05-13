@@ -14,11 +14,24 @@ if __name__ == "__main__":
     z = lambda teth: rs * cos(teth)
 
     points = [[0, 0, 0]]
-    points2 = [[x(j*pi/8, i*pi/4),
-               y(j*pi/8, i*pi/4),
-               z(j*pi/8)] for i in range(0, 8) for j in range(0, 8)]
+    points2 = [[x(j*pi/6, i*pi/3),
+               y(j*pi/6, i*pi/3),
+               z(j*pi/6)] for i in range(0, 6) for j in range(0, 6)]
+    temp = []
+    for i in range(0, 6):
+        micro_temp = []
+        for j in range(0, 6):
+            micro_temp.append([x(j * pi / 6, i * pi / 3),
+              y(j * pi / 6, i * pi / 3),
+              z(j * pi / 6)])
+        temp.append(micro_temp)
+
     Mikha = points + points2
     circle = [Point(point) for point in Mikha]
+    for i in range(len(Mikha)):
+        for j in range(i, len(Mikha)):
+            if Mikha[i] == Mikha[j]:
+                print(f'DA KAK TAK-TO///{i}//{j}')
     with open('Mikhail_BIG.gg', 'w') as f:
         f.write('\n'.join(map(str, circle)))
     Window = Game()

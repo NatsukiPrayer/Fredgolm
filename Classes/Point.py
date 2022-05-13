@@ -21,6 +21,7 @@ class Point:
         self.idd = 0
 
     def __del__(self):
+        self.related = []
         for p in self.related:
             del p
         Point.static_id -= 1
@@ -48,7 +49,7 @@ class Point:
             raise Exception("Different dimensions")
 
     def __eq__(self, other: "Point") -> bool:
-        if all([isclose(c1, c2, abs_tol = 1e-3) for c1, c2 in zip(self.coordinates, other.coordinates)])    :
+        if all([isclose(c1, c2, abs_tol = 1e-3) for c1, c2 in zip(self.coordinates, other.coordinates)]):
             return True
         else:
             return False
@@ -68,10 +69,7 @@ class Point:
             return self.coordinates[item]
 
     def __ne__(self, other: "Point") -> bool:
-        if self.coord != other:
-            return False
-        else:
-            return True
+        return not self == other
 
     def __abs__(self):
         return sum([c**2 for c in self.coordinates])**(1/2)

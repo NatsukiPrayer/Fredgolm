@@ -8,7 +8,7 @@ from Classes.Lines import Line
 from Classes.Triangle import Triangle
 from Classes.Tetrahedron import Tetrahedron
 import numpy as np
-from math import pi, cos, sin
+from math import pi, cos, sin, isclose
 from settings import *
 import numpy as np
 
@@ -26,7 +26,11 @@ class Game:
         self.triangles = []
         self.tetrahedron = []
 
+        self.calculated = []
+        self.calculated_3d = []
+        self.q = Point([-3.05, -3.05, -3.05])
         self.fredgolm_flag = False
+        self.fredgolm_flag_3d = False
 
         pygame.init()
         pygame.display.set_caption('Triangulation')
@@ -50,15 +54,19 @@ class Game:
         self.load_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 175), (100, 50)),
                                                         text='Load',
                                                         manager=self.manager)
-        self.colorize_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 225), (100, 50)),
+        self.rel_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 225), (100, 50)),
                                                         text='Related',
                                                         manager=self.manager)
         self.clear_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 275), (100, 50)),
                                                         text='Clear',
                                                         manager=self.manager)
-        self.calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 325), (100, 50)),
+        self.show_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 325), (200, 50)),
                                                          text='Show solution',
                                                          manager=self.manager)
+        self.show_button_3d = pygame_gui.elements.UIButton(
+                                                        relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 625), (200, 50)),
+                                                        text='Show solution 3d',
+                                                        manager=self.manager)
         self.flip_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 375), (100, 50)),
                                                         text='Flip',
                                                         manager=self.manager)
@@ -68,10 +76,12 @@ class Game:
         self.height_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 475), (100, 50)),
                                                                text='Height',
                                                                manager=self.manager)
-        self.mpl_draw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 525), (100, 50)),
-                                                          text='mpl_draw',
+        self.tetr_calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 525), (200, 50)),
+                                                          text='Tetr fredgolm',
                                                           manager=self.manager)
-
+        self.tri_calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 575), (200, 50)),
+                                                          text='Tri fredgolm',
+                                                          manager=self.manager)
         # self.save_text_line_button = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(
         #                                         relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 575), (100, 50)),
         #                                         manager=self.manager)
@@ -95,7 +105,8 @@ class Game:
             NewPoint = Point(NewPoint.inv_project(NewPoint.coordinates, self.rot_x, self.rot_y, self.rot_z))
         else:
             NewPoint = Point(list(pos))
-        print(NewPoint)
+        if NewPoint in self.points:
+            print(f'KAKOGO HUYA {NewPoint}')
         if NewPoint not in self.points:
             NewPoint.idd = len(self.points)
             self.points.append(NewPoint)
@@ -116,13 +127,14 @@ class Game:
             #         break
 
             for point in self.points[:-1]:
+                if NewPoint.idd == 21 and point.idd == 16:
+                    print()
                 NewLine = Line(NewPoint, point)
                 if len(self.triangles) == 0:
                     self.lines.append(NewLine)
                     NewPoint.related.append(point)
                     point.related.append(NewPoint)
                     continue
-                temp = self.triangles[3] if len(self.triangles) > 2 else self.triangles[0]
                 if not any([NewLine.isect_line_plane_v3_4d(t) for t in self.triangles]):
                     #if all([not line.intersect(NewLine) for line in self.lines]):
                     if point not in NewPoint.related:
@@ -150,18 +162,38 @@ class Game:
                         self.triangles.append(NewTriangle)
 
     def tetrahedron_creation(self) -> None:
-        self.tetrahedron_creation()
         for point in self.points:
             for next_point in point.related:
                 for next_next_point in next_point.related:
-                    for next_next_next_point in next_next_point.related:
-                        if all([p in next_next_next_point.related for p in [point, next_point]]):
-                            NewTetrahedron = Tetrahedron(point,
-                                                         next_point,
-                                                         next_next_point,
-                                                         next_next_next_point)
-                            if NewTetrahedron not in self.tetrahedron:
-                                self.tetrahedron.append(NewTetrahedron)
+                    if point in next_next_point.related:
+                        for next_next_next_point in next_next_point.related:
+                            if all([p in next_next_next_point.related for p in [point, next_point]]):
+                                NewTetrahedron = Tetrahedron(point,
+                                                             next_point,
+                                                             next_next_point,
+                                                             next_next_next_point)
+                                if NewTetrahedron not in self.tetrahedron:
+                                    self.tetrahedron.append(NewTetrahedron)
+
+                            # x1, y1, z1 = point
+                            # x2, y2, z2 = next_point
+                            # x3, y3, z3 = next_next_point
+                            # x4, y4, z4 = next_next_next_point
+                            # res = np.linalg.det(np.array([[x1, x2, x3, x4],
+                            #                               [y1, y2, y3, y4],
+                            #                               [z1, z2, z3, z4],
+                            #                               [1, 1, 1, 1]]))
+                            # if abs(res) > 1e-4:
+                            # # L1 = Line(point, next_point)
+                            # # L2 = Line(point, next_next_point)
+                            # # L3 = Line(point, next_next_next_point)
+                            # # if not isclose(sum(L1.triple_prod(L2, L3)), 0, abs_tol=1e-3):
+                            #     NewTetrahedron = Tetrahedron(point,
+                            #                                  next_point,
+                            #                                  next_next_point,
+                            #                                  next_next_next_point)
+                            #     if NewTetrahedron not in self.tetrahedron:
+                            #         self.tetrahedron.append(NewTetrahedron)
 
     def rel(self) -> None:
         print('===========================')
@@ -175,6 +207,10 @@ class Game:
             print(t)
             print(t.center)
             print(len(self.triangles))
+        print('======TETRAHEDRONS===========')
+        for tt in self.tetrahedron:
+            print(tt)
+        print(len(self.tetrahedron))
 
     def clear(self) -> None:
         for p in self.points:
@@ -182,8 +218,13 @@ class Game:
         self.points = []
         self.lines = []
         self.triangles = []
+        self.tetrahedron = []
+        self.calculated = []
+        self.calculated_3d = []
         self.fredgolm_flag = False
-        self.calc_button.set_text('Show solution')
+        self.fredgolm_flag_3d = False
+        self.show_button.set_text('Show solution')
+        self.show_button.set_text('Show solution 3d')
         self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
 
     def divide(self) -> None:
@@ -322,7 +363,7 @@ class Game:
                         self.save(mode=0)
                     if self.load_button.check_pressed():
                         self.menu = pygame_gui.windows.UIFileDialog(pygame.Rect((400, 300), (100, 100)), self.manager)
-                    if self.colorize_button.check_pressed():
+                    if self.rel_button.check_pressed():
                         self.rel()
                     if self.clear_button.check_pressed():
                         self.clear()
@@ -331,13 +372,21 @@ class Game:
                         self.menu = None
                         #self.gen = self.load(path)
                         self.load(path)
-                    if self.calc_button.check_pressed():
+                    if self.show_button.check_pressed():
                         if self.fredgolm_flag == False:
-                            self.calc_button.set_text('Hide solution')
+                            self.show_button.set_text('Hide solution')
                             self.fredgolm_flag = True
                         else:
-                            self.calc_button.set_text('Hide solution')
+                            self.show_button.set_text('Show solution')
                             self.fredgolm_flag = False
+                    if self.show_button_3d.check_pressed():
+                        if self.fredgolm_flag_3d == False:
+                            self.show_button_3d.set_text('Hide solution 3d')
+                            self.fredgolm_flag_3d = True
+                        else:
+                            self.show_button_3d.set_text('Show solution 3d')
+                            self.fredgolm_flag_3d = False
+
                     if self.flip_button.check_pressed():
                         self.optimize()
                         self.redraw(from_scracth = True)
@@ -349,9 +398,11 @@ class Game:
                         self.new_point(newp.coord)
                         print(self.triangles[0].integral(self.triangles[0].points[2]))
                         self.redraw(from_scracth = True)
-                    if self.mpl_draw_button.check_pressed():
-                        self.angle_x += 100
-                        print(self.points[0].project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix)[:2])
+                    if self.tetr_calc_button.check_pressed():
+                        self.tetrahedron_creation()
+                        self.calc(mode = 1)
+                    if self.tri_calc_button.check_pressed():
+                        self.calc()
 
                 self.manager.process_events(event)
 
@@ -369,13 +420,13 @@ class Game:
             font = pygame.font.SysFont('arial', 25)
 
             for point in self.points:
-                #text = font.render(str(point.idd), True, (0, 0, 0))
+                text = font.render(str(point.idd), True, (0, 0, 0))
 
                 xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
                 x = xy[0]
                 y = xy[1]
-                # self.background.blit(text,
-                #                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
+                self.background.blit(text,
+                                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
                 # for related_p in point.related:
                 #     NewLine = Line(point, related_p)
@@ -408,7 +459,31 @@ class Game:
             #     i += 1
 
         if self.fredgolm_flag:
-            self.calc(0, 1)
+            calcul = self.calculated
+            min_calcul = abs(min(calcul))
+            max_calcul = max(calcul) + min_calcul
+            q_p = self.q.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+            pygame.draw.circle(self.background, 'black',
+                               (q_p[0] + WORKING_SPACE_WIDTH_HALF, q_p[1] + WORKING_SPACE_HEIGHT_HALF), 10)
+            for i in range(len(calcul)):
+                kal = (calcul[i] + min_calcul) / max_calcul
+                p = self.triangles[i].center.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix,
+                                                     scale=self.scale)
+                pygame.draw.circle(self.background, (kal * 255, 0, (1 - kal) * 255),
+                                   (p[0] + WORKING_SPACE_WIDTH_HALF, p[1] + WORKING_SPACE_HEIGHT_HALF), 4)
+        if self.fredgolm_flag_3d:
+            calcul = list(map(np.real, self.calculated_3d))
+            min_calcul = abs(min(calcul))
+            max_calcul = max(calcul) + min_calcul
+            q_p = self.q.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
+            pygame.draw.circle(self.background, 'black',
+                               (q_p[0] + WORKING_SPACE_WIDTH_HALF, q_p[1] + WORKING_SPACE_HEIGHT_HALF), 10)
+            for i in range(len(calcul)):
+                kal = (calcul[i] + min_calcul) / max_calcul
+                p = self.tetrahedron[i].center().project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix,
+                                                     scale=self.scale)
+                pygame.draw.circle(self.background, (kal * 255, 0, (1 - kal) * 255),
+                                   (p[0] + WORKING_SPACE_WIDTH_HALF, p[1] + WORKING_SPACE_HEIGHT_HALF), 4)
 
         self.window.blit(self.background, (0, 0))
         self.manager.draw_ui(self.window)
@@ -442,10 +517,15 @@ class Game:
                 self.new_point(tuple(map(float, line.split())))
                 #yield
 
-    def calc(self, a: float, b: float) -> None:
-        N = len(self.triangles)
-        A, f, q = self.find_A(a, b, N)
-        calcul = np.linalg.solve(A, f)
+    def calc(self, mode = 0) -> None:
+        if mode == 0:
+            N = len(self.triangles)
+            A, f, self.q = self.find_A(N)
+            self.calculated = np.linalg.solve(A, f)
+        if mode == 1:
+            N = len(self.tetrahedron)
+            A, f, self.q = self.find_A(N, mode = 1)
+            self.calculated_3d = np.linalg.solve(A, f)
         #calcul_num = sorted([[calcul[i], i] for i in range(len(self.triangles))],
                             #key = lambda x: x[0])
         # red = Color("blue")
@@ -454,15 +534,6 @@ class Game:
         # colors_rgb_255 = [(c[0] * 255, c[1] * 255, c[2] * 255) for c in colors_rgb]
 
         #print(calcul_num)
-        min_calcul = abs(min(calcul))
-        max_calcul = max(calcul) + min_calcul
-        q_p = q.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
-        pygame.draw.circle(self.background, 'black',
-                           (q_p[0] + WORKING_SPACE_WIDTH_HALF, q_p[1] + WORKING_SPACE_HEIGHT_HALF), 10)
-        for i in range(len(calcul)):
-            kal = (calcul[i] + min_calcul) / max_calcul
-            p = self.triangles[i].center.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
-            pygame.draw.circle(self.background, (kal * 255, 0, (1-kal) * 255), (p[0] + WORKING_SPACE_WIDTH_HALF, p[1] + WORKING_SPACE_HEIGHT_HALF) ,4)
         #c2 = (WINDOW_HEIGHT ** 3 / 3 + WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3))) / (
         #            1 - WINDOW_HEIGHT ** 3 / 3 - WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3)))
         #c1 = WINDOW_HEIGHT * (1 + c2) / (1 - WINDOW_HEIGHT ** 3 / 3)
@@ -472,24 +543,35 @@ class Game:
 
 
     def core(self, p1: Point, p2: Point):
-        return 1/(pi * 90000) * (1/ abs(p1 - p2))
+        return 1/(pi * 9) * (1/ abs(p1 - p2))
 
-    def find_A(self, a: float, b: float, N: int, f=None) -> list:
+    def core_3d(self, w: float, p1: Point, p2: Point):
+        num = np.exp((1j * w * abs(p1 - p2)) / np.exp(1))
+        denom = pi * 4 * 9 * abs(p1 - p2)
+        return num / denom
+
+    def find_A(self, N: int, f=None, mode = 0) -> list:
         if f is None:
             f = self.core
         A = []
-        for i in range(0, len(self.triangles)):
+        for i in range(0, N):
             temp = []
-            for j in range(0, len(self.triangles)):
+            for j in range(0, N):
                 if j == i:
                     #temp.append(self.triangles[j].integral() * self.triangles[j].area())
                     temp.append(0)
                 else:
-                    temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
+                    if mode == 0:
+                        temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
+                    else:
+                        temp.append(self.core_3d(4.5, self.tetrahedron[i].center(), self.tetrahedron[j].center()) * self.tetrahedron[j].volume())
             A.append(temp)
         A = np.array(A) + np.eye(len(A))
-        q = Point([-6, -4, 0])
-        f_vec = [f(i.center, q) for i in self.triangles]
+        q = self.q
+        if mode == 0:
+            f_vec = [f(i.center, q) for i in self.triangles]
+        else:
+            f_vec = [f(i.center(), q) for i in self.tetrahedron]
         return [A, f_vec, q]
 
 

@@ -21,8 +21,8 @@ class Line:
         return Point([c / np.linalg.norm(direc.coord) * -1 for c in direc.coord])
 
     def cos_angle_between(self, l2: "Line") -> float:
-        v1_u = (self.points[1] - self.points[0]).coord
-        v2_u = (l2.points[1] - l2.points[0]).coord
+        v1_u = (self.points[1] - self.points[0]).coordinates
+        v2_u = (l2.points[1] - l2.points[0]).coordinates
         v1_u = v1_u / np.linalg.norm(v1_u)
         v2_u = v2_u / np.linalg.norm(v2_u)
         return np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)
@@ -42,7 +42,7 @@ class Line:
 
     def isect_line_plane_v3_4d(self, triangle, epsilon=1e-6, **kwargs):
         flag = False
-        if self.points[0].idd == 6 and self.points[1].idd == 0:
+        if triangle.id == '13/0/1':
             print()
             flag = True
         p_no = np.array(triangle.get_4d())[:3]
@@ -50,8 +50,8 @@ class Line:
         p1 = np.array(self.points[1].coordinates)
 
         u = p1 - p0
-        if u @ p_no == 0:
-            return any([self.intersect(line) for line in triangle.lines()])
+        # if isclose(u @ p_no, 0, abs_tol=1e-3):
+        #     return any([self.intersect(line) for line in triangle.lines()])
 
         dot = np.dot(p_no, u)
 
@@ -66,10 +66,8 @@ class Line:
             intersect_p = Point(list(p0 + u))
             if 0 < fac < 1:
                 if triangle.is_in(intersect_p):
-                    if flag:
-                        print('<<<>>>')
-                        print(triangle.id)
-
+                    print('<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>')
+                    print(triangle.id)
                     return True
         return False
 
@@ -110,7 +108,7 @@ class Line:
 
     def triple_prod(self, v1: "Line", v2: "Line") -> float:
         cross = np.array((v1[1] - v1[0]).coordinates) @ np.array((v2[1] - v2[0]).coordinates)
-        return np.linalg.dot(np.array((self[1] - self[0]).coordinates), cross)
+        return np.dot(np.array((self[1] - self[0]).coordinates), cross)
 
     def isBetween(self, c: Point) -> bool:
         # compare versus epsilon for floating point values, or != 0 if using integers
