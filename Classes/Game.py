@@ -28,7 +28,7 @@ class Game:
 
         self.calculated = []
         self.calculated_3d = []
-        self.q = Point([-3.05, -3.05, -3.05])
+        self.q = Point([-3.01, -3.01, -3.01])
         self.fredgolm_flag = False
         self.fredgolm_flag_3d = False
 
@@ -105,8 +105,7 @@ class Game:
             NewPoint = Point(NewPoint.inv_project(NewPoint.coordinates, self.rot_x, self.rot_y, self.rot_z))
         else:
             NewPoint = Point(list(pos))
-        if NewPoint in self.points:
-            print(f'KAKOGO HUYA {NewPoint}')
+
         if NewPoint not in self.points:
             NewPoint.idd = len(self.points)
             self.points.append(NewPoint)
@@ -127,8 +126,6 @@ class Game:
             #         break
 
             for point in self.points[:-1]:
-                if NewPoint.idd == 21 and point.idd == 16:
-                    print()
                 NewLine = Line(NewPoint, point)
                 if len(self.triangles) == 0:
                     self.lines.append(NewLine)
@@ -210,7 +207,9 @@ class Game:
         print('======TETRAHEDRONS===========')
         for tt in self.tetrahedron:
             print(tt)
+            print(f'CENTER IS === {tt.center()}')
         print(len(self.tetrahedron))
+
 
     def clear(self) -> None:
         for p in self.points:
@@ -224,7 +223,7 @@ class Game:
         self.fredgolm_flag = False
         self.fredgolm_flag_3d = False
         self.show_button.set_text('Show solution')
-        self.show_button.set_text('Show solution 3d')
+        self.show_button_3d.set_text('Show solution 3d')
         self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
 
     def divide(self) -> None:
@@ -266,25 +265,43 @@ class Game:
         return True
 
     def optimize(self) -> None:
+        flag = False
         for i in range(len(self.triangles)):
-            count = 0
             for j in range(i, len(self.triangles)):
-                if count == 3:
-                    break
+                FlaGG = False
                 if self.triangles[j].is_related(self.triangles[i]):
-                    count += 1
                     for p in self.triangles[i].points:
                         if p not in self.triangles[j].points:
-                            outer_p = p
-                    x = outer_p.coord[0]
-                    y = outer_p.coord[1]
-                    det = []
+                            A = self.triangles[j].points[0] - p
+                            B = self.triangles[j].points[1] - p
+                            C = self.triangles[j].points[2] - p
+                            res = np.linalg.det(np.array([[A[0], A[1], A[2]],
+                                                       [B[0], B[1], B[2]],
+                                                       [C[0], C[1], C[2]]]))
+                            if isclose(res, 0, abs_tol=1e-3):
+                                FlaGG = True
+                    if not FlaGG:
+                        continue
                     for p in self.triangles[i].points:
-                        l = [(p[0] - x) ** 2 + (p[1] - y) ** 2, p[0] - x, p[1] - y]
-                        det.append(l)
-                    det = np.array(det)
-                    if np.linalg.det(det) == 0:
+                        if p not in self.triangles[j].points:
+                            index = self.triangles[i].points.index(p)
+                    alpha = Line(self.triangles[i].points[index],
+                                 self.triangles[i].points[(index+1)%3]).arcos_angle_between(
+                        Line(self.triangles[i].points[index], self.triangles[i].points[(index+2)%3])
+                    )
+
+                    for p in self.triangles[j].points:
+                        if p not in self.triangles[i].points:
+                            index = self.triangles[j].points.index(p)
+                    betha = Line(self.triangles[j].points[index],
+                                 self.triangles[j].points[(index + 1) % 3]).arcos_angle_between(
+                        Line(self.triangles[j].points[index], self.triangles[j].points[(index + 2) % 3])
+                    )
+                    if sin(alpha + betha) <= 0:
+                        flag = True
                         self.flip(self.triangles[i], self.triangles[j])
+        if flag:
+            self.optimize()
         print('=========================Done!=========================')
         #yield True
 
@@ -293,15 +310,6 @@ class Game:
         is_running = True
         #opt = self.optimize()
 
-        points = [
-            (-2.37,0.78,0),
-            (0.12,0.56,0),
-            (-0.92,-0.96,0),
-            (-1.01,-0.23626225357012395,3.331633255257542),
-            (2.6,-0.65,2.02)
-        ]
-        for p in points:
-            self.new_point(p)
         while is_running:
             self.rot_x = np.array(
                 [[1, 0, 0], [0, cos(self.angle_x), -sin(self.angle_x)], [0, sin(self.angle_x), cos(self.angle_x)]])
@@ -420,13 +428,13 @@ class Game:
             font = pygame.font.SysFont('arial', 25)
 
             for point in self.points:
-                text = font.render(str(point.idd), True, (0, 0, 0))
+                #text = font.render(str(point.idd), True, (0, 0, 0))
 
                 xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
                 x = xy[0]
                 y = xy[1]
-                self.background.blit(text,
-                                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
+                #self.background.blit(text,
+                #                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
                 # for related_p in point.related:
                 #     NewLine = Line(point, related_p)
@@ -467,10 +475,11 @@ class Game:
                                (q_p[0] + WORKING_SPACE_WIDTH_HALF, q_p[1] + WORKING_SPACE_HEIGHT_HALF), 10)
             for i in range(len(calcul)):
                 kal = (calcul[i] + min_calcul) / max_calcul
+                kal = kal ** 2
                 p = self.triangles[i].center.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix,
                                                      scale=self.scale)
                 pygame.draw.circle(self.background, (kal * 255, 0, (1 - kal) * 255),
-                                   (p[0] + WORKING_SPACE_WIDTH_HALF, p[1] + WORKING_SPACE_HEIGHT_HALF), 4)
+                                   (p[0] + WORKING_SPACE_WIDTH_HALF, p[1] + WORKING_SPACE_HEIGHT_HALF), 8)
         if self.fredgolm_flag_3d:
             calcul = list(map(np.real, self.calculated_3d))
             min_calcul = abs(min(calcul))
@@ -480,6 +489,8 @@ class Game:
                                (q_p[0] + WORKING_SPACE_WIDTH_HALF, q_p[1] + WORKING_SPACE_HEIGHT_HALF), 10)
             for i in range(len(calcul)):
                 kal = (calcul[i] + min_calcul) / max_calcul
+                if math.isnan(kal):
+                    kal = 0
                 p = self.tetrahedron[i].center().project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix,
                                                      scale=self.scale)
                 pygame.draw.circle(self.background, (kal * 255, 0, (1 - kal) * 255),
@@ -526,6 +537,7 @@ class Game:
             N = len(self.tetrahedron)
             A, f, self.q = self.find_A(N, mode = 1)
             self.calculated_3d = np.linalg.solve(A, f)
+            print(f'ACCURACY IS {self.accuracy(self.analyt_sol(),self.calculated_3d)}')
         #calcul_num = sorted([[calcul[i], i] for i in range(len(self.triangles))],
                             #key = lambda x: x[0])
         # red = Color("blue")
@@ -545,33 +557,57 @@ class Game:
     def core(self, p1: Point, p2: Point):
         return 1/(pi * 9) * (1/ abs(p1 - p2))
 
-    def core_3d(self, w: float, p1: Point, p2: Point):
-        num = np.exp((1j * w * abs(p1 - p2)) / np.exp(1))
-        denom = pi * 4 * 9 * abs(p1 - p2)
-        return num / denom
+    def core_3d(self, p1: Point, p2: Point, mode = 'c'):
+        #num = np.exp((1j * w * abs(p1 - p2)) / np.exp(1))
+        #denom = pi * 4/3 * 27 * abs(p1 - p2)
+        # if mode == 'f':
+        #     return num
+        # else:
+        #     return num / denom
+        return 1/(abs(p1 - p2) * 4/3 * pi * 27)
+
+    def analyt_sol(self):
+        A = np.array([[8/9, -1/3], [-1/15, 8/9]])
+        f = np.array([1, 1/3])
+        c1, c2 = np.linalg.solve(A, f)
+        f = lambda x: 1 + 1/3 * x**2 * c1 + 1/3 * c2
+        return [f(x*6/37 - 3) for x in range(0,37)]
+
+    def accuracy(self, true, calc):
+        return sum([abs(x/y) for x, y in zip(true, calc)])/len(true)
 
     def find_A(self, N: int, f=None, mode = 0) -> list:
         if f is None:
-            f = self.core
+            if mode == 0:
+                f = self.core
+            if mode == 1:
+                f = self.core_3d
+                #f = lambda x, y: x**2 + y**2
         A = []
         for i in range(0, N):
             temp = []
             for j in range(0, N):
                 if j == i:
                     #temp.append(self.triangles[j].integral() * self.triangles[j].area())
-                    temp.append(0)
+                    temp.append(1)
                 else:
                     if mode == 0:
                         temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
                     else:
-                        temp.append(self.core_3d(4.5, self.tetrahedron[i].center(), self.tetrahedron[j].center()) * self.tetrahedron[j].volume())
+                        temp.append(self.core_3d(self.tetrahedron[i].center(), self.tetrahedron[j].center())
+                                    * self.tetrahedron[j].volume())
             A.append(temp)
-        A = np.array(A) + np.eye(len(A))
+
+        A = np.array(A) #+ np.eye(len(A))
         q = self.q
         if mode == 0:
             f_vec = [f(i.center, q) for i in self.triangles]
         else:
-            f_vec = [f(i.center(), q) for i in self.tetrahedron]
+            f_vec = []
+            for i in self.tetrahedron:
+                #x, y, z = i.center().coordinates
+                #f_vec.append(f(x, y, z))
+                f_vec = [self.core(i.center(), q) for i in self.tetrahedron]
         return [A, f_vec, q]
 
 

@@ -22,21 +22,28 @@ class Triangle:
         self.id = f'{p1.idd}/{p2.idd}/{p3.idd}'
 
     def orthocenter(self):
-        x1, y1, z1 = self.points[0]
-        x2, y2, z2 = self.points[1]
-        x3, y3, z3 = self.points[2]
+        H1 = self.get_height_intersect(self.points[0])
+        L1 = Line(self.points[0], H1)
+        H2 = self.get_height_intersect(self.points[1])
+        L2 = Line(self.points[1], H2)
+        return L1.intersect(L2, p_flag=True)
 
-        x = np.linalg.det(np.array([[x1**2 + y1**2 + z1**2, y1, z1, 1],
-                      [x2**2 + y2**2 + z2**2, y2, z2, 1],
-                      [x3**2 + y3**2 + z3**3, y3, z3, 1]]))
-
-        y = -1* np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
-                      [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
-                      [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
-
-        z = np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
-                      [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
-                      [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
+        # x1, y1, z1 = self.points[0]
+        # x2, y2, z2 = self.points[1]
+        # x3, y3, z3 = self.points[2]
+        #
+        # x = np.linalg.det(np.array([[x1**2 + y1**2 + z1**2, y1, z1, 1],
+        #               [x2**2 + y2**2 + z2**2, y2, z2, 1],
+        #               [x3**2 + y3**2 + z3**3, y3, z3, 1]]))
+        #
+        # y = -1* np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
+        #               [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
+        #               [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
+        #
+        # z = np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
+        #               [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
+        #               [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
+        # return Point([x, y, z])
 
     def points_check(self, other: "Triangle") -> list[bool]:
         return [any([p1 == p2 for p2 in other.points]) for p1 in self.points]
@@ -45,6 +52,7 @@ class Triangle:
         return [Line(self.points[0], self.points[1]),
                 Line(self.points[1], self.points[2]),
                 Line(self.points[2], self.points[0])]
+
 
     def get_height_intersect(self, p: Point, height_len=False) -> Point:
         lines = self.lines()
@@ -87,9 +95,9 @@ class Triangle:
 
 
     def R(self) -> float:
-        return Line(self.points[0], self.points[1]).length * \
-               Line(self.points[1], self.points[2]).length * \
-               Line(self.points[2], self.points[0]).length / (4 * self.square())
+        return 2 * self.square() / (Line(self.points[0], self.points[1]).length + \
+               Line(self.points[1], self.points[2]).length + \
+               Line(self.points[2], self.points[0]).length)
 
     def __eq__(self, other: "Triangle") -> bool:
         if all(self.points_check(other)):

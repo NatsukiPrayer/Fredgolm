@@ -71,6 +71,13 @@ class Point:
     def __ne__(self, other: "Point") -> bool:
         return not self == other
 
+    def __pow__(self, power, modulo=None):
+        new_coords = list(map(lambda x: x**power, self.coordinates))
+        return Point(new_coords)
+
+    def kakogo_huya(self):
+        return self + Point([10,10,10])
+
     def __abs__(self):
         return sum([c**2 for c in self.coordinates])**(1/2)
 

@@ -32,7 +32,7 @@ class Tetrahedron:
     def center(self) -> Point:
         triangles = []
         for i in range(len(self.points)):
-            triangles.append(Triangle(self.points[i%4], self.points[(i+1)%4], self.points[(i+2)%4]))
+            triangles.append(Triangle(self.points[i % 4], self.points[(i+1) % 4], self.points[(i+2) % 4]))
         S1, S2, S3, S4 = map(lambda x: x.square(), triangles)
         x1, y1, z1 = self.points[0]
         x2, y2, z2 = self.points[1]
@@ -42,6 +42,9 @@ class Tetrahedron:
         x = (S1 * x1 + S2 * x2 + S3 * x3 + S4 * x4) / denom
         y = (S1 * y1 + S2 * y2 + S3 * y3 + S4 * y4) / denom
         z = (S1 * z1 + S2 * z2 + S3 * z3 + S4 * z4) / denom
+        # x = sum(p[0] for p in self.points) / 4
+        # y = sum(p[1] for p in self.points) / 4
+        # z = sum(p[2] for p in self.points) / 4
         return Point([x, y, z])
 
     def __repr__(self) -> str:

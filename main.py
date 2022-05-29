@@ -7,32 +7,28 @@ from settings import *
 
 # Press the green button in the gutter to run the script.
 if __name__ == "__main__":
-    r = 9
+    r = 1
     rs = r ** (1/2)
     x = lambda teth, phi: rs * sin(teth) * cos(phi)
     y = lambda teth, phi: rs * sin(teth) * sin(phi)
     z = lambda teth: rs * cos(teth)
 
-    points = [[0, 0, 0]]
-    points2 = [[x(j*pi/6, i*pi/3),
-               y(j*pi/6, i*pi/3),
-               z(j*pi/6)] for i in range(0, 6) for j in range(0, 6)]
+    points = [[1, 1, 1]]
+    points2 = [[x(j*pi/6, i*pi/3) + 1,
+               y(j*pi/6, i*pi/3) + 1,
+               z(j*pi/6) + 1] for i in range(0, 6) for j in range(0, 6)]
     temp = []
     for i in range(0, 6):
         micro_temp = []
         for j in range(0, 6):
-            micro_temp.append([x(j * pi / 6, i * pi / 3),
-              y(j * pi / 6, i * pi / 3),
-              z(j * pi / 6)])
+            micro_temp.append([x(j * pi / 6, i * pi / 3) + 1,
+              y(j * pi / 6, i * pi / 3) + 1,
+              z(j * pi / 6) + 1])
         temp.append(micro_temp)
 
     Mikha = points + points2
     circle = [Point(point) for point in Mikha]
-    for i in range(len(Mikha)):
-        for j in range(i, len(Mikha)):
-            if Mikha[i] == Mikha[j]:
-                print(f'DA KAK TAK-TO///{i}//{j}')
-    with open('Mikhail_BIG.gg', 'w') as f:
+    with open('Mikhail_BIG_1.gg', 'w') as f:
         f.write('\n'.join(map(str, circle)))
     Window = Game()
     Window.run()
