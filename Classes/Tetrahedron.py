@@ -1,6 +1,7 @@
 from Classes.Point import Point
 from Classes.Triangle import Triangle
 from Classes.Lines import Line
+import numpy as np
 from math import isclose
 
 class Tetrahedron:
@@ -24,10 +25,18 @@ class Tetrahedron:
             return True
 
     def volume(self):
-        L1 = Line(self.points[0], self.points[1])
-        L2 = Line(self.points[0], self.points[2])
-        L3 = Line(self.points[0], self.points[3])
-        return sum(L1.triple_prod(L2, L3))
+        ad = np.array((self.points[0] - self.points[3]).coordinates)
+        bd = np.array((self.points[1] - self.points[3]).coordinates)
+        cd = np.array((self.points[2] - self.points[3]).coordinates)
+        det = np.linalg.det(np.array([ad,
+                                      bd,
+                                      cd]))
+        return abs(1/6 * det)
+
+        # L1 = Line(self.points[0], self.points[1])
+        # L2 = Line(self.points[0], self.points[2])
+        # L3 = Line(self.points[0], self.points[3])
+        # return sum(L1.triple_prod(L2, L3))
 
     def center(self) -> Point:
         triangles = []

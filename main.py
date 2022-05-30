@@ -7,28 +7,28 @@ from settings import *
 
 # Press the green button in the gutter to run the script.
 if __name__ == "__main__":
-    r = 1
+    r = 9
     rs = r ** (1/2)
     x = lambda teth, phi: rs * sin(teth) * cos(phi)
     y = lambda teth, phi: rs * sin(teth) * sin(phi)
     z = lambda teth: rs * cos(teth)
 
-    points = [[1, 1, 1]]
-    points2 = [[x(j*pi/6, i*pi/3) + 1,
-               y(j*pi/6, i*pi/3) + 1,
-               z(j*pi/6) + 1] for i in range(0, 6) for j in range(0, 6)]
+    points = [[0, 0, 0]]
+    points2 = [[x(j*pi/8, i*pi/4),
+               y(j*pi/8, i*pi/4),
+               z(j*pi/8)] for i in range(0, 9) for j in range(0, 9)]
     temp = []
-    for i in range(0, 6):
+    for i in range(0, 9):
         micro_temp = []
-        for j in range(0, 6):
-            micro_temp.append([x(j * pi / 6, i * pi / 3) + 1,
-              y(j * pi / 6, i * pi / 3) + 1,
-              z(j * pi / 6) + 1])
+        for j in range(0, 9):
+            micro_temp.append([x(j * pi / 8, i * pi / 4),
+              y(j * pi / 8, i * pi / 4),
+              z(j * pi / 8)])
         temp.append(micro_temp)
 
     Mikha = points + points2
     circle = [Point(point) for point in Mikha]
-    with open('Mikhail_BIG_1.gg', 'w') as f:
+    with open('Mikhail_BIG_64.gg', 'w') as f:
         f.write('\n'.join(map(str, circle)))
     Window = Game()
     Window.run()

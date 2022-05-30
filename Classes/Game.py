@@ -28,9 +28,10 @@ class Game:
 
         self.calculated = []
         self.calculated_3d = []
-        self.q = Point([-3.01, -3.01, -3.01])
+        self.q = Point([-3, -3, -3])
         self.fredgolm_flag = False
         self.fredgolm_flag_3d = False
+        self.state = True
 
         pygame.init()
         pygame.display.set_caption('Triangulation')
@@ -42,46 +43,49 @@ class Game:
         pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
 
         self.manager = pygame_gui.UIManager((WINDOW_WIDTH, WINDOW_HEIGHT))
-        self.optimize_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 25), (100, 50)),
+        self.optimize_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 25), (200, 50)),
                                                  text='Optimize',
                                                  manager = self.manager)
-        self.redraw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 75), (100, 50)),
-                                                 text='Redraw',
-                                                 manager = self.manager)
-        self.save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 125), (100, 50)),
+        # self.redraw_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 75), (100, 50)),
+        #                                          text='Redraw',
+        #                                          manager = self.manager)
+        self.save_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 75), (200, 50)),
                                                  text='Save',
                                                  manager = self.manager)
-        self.load_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 175), (100, 50)),
+        self.load_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 125), (200, 50)),
                                                         text='Load',
                                                         manager=self.manager)
-        self.rel_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 225), (100, 50)),
+        self.rel_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 175), (200, 50)),
                                                         text='Related',
                                                         manager=self.manager)
-        self.clear_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 275), (100, 50)),
+        self.clear_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 225), (200, 50)),
                                                         text='Clear',
+                                                        manager=self.manager)
+        self.tri_calc_button = pygame_gui.elements.UIButton(
+                                                        relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 275), (200, 50)),
+                                                        text='Tri fredgolm',
                                                         manager=self.manager)
         self.show_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 325), (200, 50)),
                                                          text='Show solution',
                                                          manager=self.manager)
+        self.tetr_calc_button = pygame_gui.elements.UIButton(
+                                                        relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 375), (200, 50)),
+                                                        text='Tetr fredgolm',
+                                                        manager=self.manager)
         self.show_button_3d = pygame_gui.elements.UIButton(
-                                                        relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 625), (200, 50)),
+                                                        relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 425), (200, 50)),
                                                         text='Show solution 3d',
                                                         manager=self.manager)
-        self.flip_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 375), (100, 50)),
+        self.flip_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 475), (200, 50)),
                                                         text='Flip',
                                                         manager=self.manager)
-        self.line_center_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 425), (100, 50)),
-                                                          text='Lines center',
-                                                          manager=self.manager)
-        self.height_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 475), (100, 50)),
-                                                               text='Height',
-                                                               manager=self.manager)
-        self.tetr_calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 525), (200, 50)),
-                                                          text='Tetr fredgolm',
-                                                          manager=self.manager)
-        self.tri_calc_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 575), (200, 50)),
-                                                          text='Tri fredgolm',
-                                                          manager=self.manager)
+        # self.line_center_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 425), (100, 50)),
+        #                                                   text='Lines center',
+        #                                                   manager=self.manager)
+        # self.height_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((WINDOW_WIDTH * 7//8, 475), (100, 50)),
+        #                                                        text='Height',
+        #                                                        manager=self.manager)
+
         # self.save_text_line_button = pygame_gui.elements.ui_text_entry_line.UITextEntryLine(
         #                                         relative_rect=pygame.Rect((WINDOW_WIDTH * 7 // 8, 575), (100, 50)),
         #                                         manager=self.manager)
@@ -208,6 +212,7 @@ class Game:
         for tt in self.tetrahedron:
             print(tt)
             print(f'CENTER IS === {tt.center()}')
+            print(f'VOLUME IS === {tt.volume()}')
         print(len(self.tetrahedron))
 
 
@@ -227,11 +232,15 @@ class Game:
         self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
 
     def divide(self) -> None:
-        min_square = min([t.square() for t in self.triangles])
-        for t in self.triangles:
-            diff = t.square() / min_square
-            if diff > 2:
-                self.new_point(t.center.coordinates)
+        centers = [t.center for t in self.triangles]
+        for c in centers:
+            self.new_point(c.coordinates)
+
+        # min_square = min([t.square() for t in self.triangles])
+        # for t in self.triangles:
+        #     diff = t.square() / min_square
+        #     if diff > 2:
+        #         self.new_point(t.center.coordinates)
 
     def line_center(self) -> None:
         existing_lines = self.lines.copy()
@@ -320,47 +329,64 @@ class Game:
             clock.tick(60)
             time_delta = clock.tick(60) / 1000.0
             for event in pygame.event.get():
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_a]:
-                    self.angle_y += ROTATE_SPEED
-                if keys[pygame.K_d]:
-                    self.angle_y -= ROTATE_SPEED
-                if keys[pygame.K_w]:
-                    self.angle_x += ROTATE_SPEED
-                if keys[pygame.K_s]:
-                    self.angle_x -= ROTATE_SPEED
-                if keys[pygame.K_q]:
-                    self.angle_z += ROTATE_SPEED
-                if keys[pygame.K_e]:
-                    self.angle_z -= ROTATE_SPEED
-                if keys[pygame.K_r]:
-                    self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
-                if keys[pygame.K_m]:
-                    from time import sleep
-                    if self.mstate:
-                        next(self.gen)
-                    self.mstate = False
-                if event.type == pygame.KEYUP:
-                    print(event.key)
-                    if event.key == 109:
-                        self.mstate = True
-                if event.type == pygame.QUIT:
-                    is_running = False
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:
-                        pos = pygame.mouse.get_pos()
-                        if pos[0] < WORKING_SPACE_WIDTH:
-                            self.new_point(pos, isclicked=True)
-                    elif event.button == 4:
-                        if self.scale < 700:
-                            self.scale += 7
-                    elif event.button == 5:
-                        if self.scale > 8:
-                            self.scale -= 7
+                if self.state:
+                    keys = pygame.key.get_pressed()
+                    if keys[pygame.K_a]:
+                        self.angle_y += ROTATE_SPEED
+                    if keys[pygame.K_d]:
+                        self.angle_y -= ROTATE_SPEED
+                    if keys[pygame.K_w]:
+                        self.angle_x += ROTATE_SPEED
+                    if keys[pygame.K_s]:
+                        self.angle_x -= ROTATE_SPEED
+                    if keys[pygame.K_q]:
+                        self.angle_z += ROTATE_SPEED
+                    if keys[pygame.K_e]:
+                        self.angle_z -= ROTATE_SPEED
+                    if keys[pygame.K_r]:
+                        self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
+                    if keys[pygame.K_m]:
+                        from time import sleep
+                        if self.mstate:
+                            next(self.gen)
+                        self.mstate = False
+                    if event.type == pygame.KEYUP:
+                        print(event.key)
+                        if event.key == 109:
+                            self.mstate = True
+                    if event.type == pygame.QUIT:
+                        is_running = False
+                    if event.type == pygame.MOUSEBUTTONUP:
+                        if event.button == 1:
+                            pos = pygame.mouse.get_pos()
+                            if pos[0] < WORKING_SPACE_WIDTH:
+                                self.new_point(pos, isclicked=True)
+                        elif event.button == 4:
+                            if self.scale < 700:
+                                self.scale += 7
+                        elif event.button == 5:
+                            if self.scale > 8:
+                                self.scale -= 7
+                if len(self.triangles) == 0:
+                    self.tri_calc_button.disable()
+                else:
+                    self.tri_calc_button.enable()
+                if len(self.tetrahedron) == 0:
+                    self.tetr_calc_button.disable()
+                else:
+                    self.tetr_calc_button.enable()
+                if len(self.calculated) == 0:
+                    self.show_button.disable()
+                else:
+                    self.show_button.enable()
+                if len(self.calculated_3d) == 0:
+                    self.show_button_3d.disable()
+                else:
+                    self.show_button_3d.enable()
 
                 if event.type == pygame_gui.UI_BUTTON_PRESSED:
-                    if self.redraw_button.check_pressed():
-                        self.redraw(from_scracth=True)
+                    # if self.redraw_button.check_pressed():
+                    #     self.redraw(from_scracth=True)
                     if self.optimize_btn.check_pressed():
                         #turns = next(opt)
                         #if turns:
@@ -371,6 +397,7 @@ class Game:
                         self.save(mode=0)
                     if self.load_button.check_pressed():
                         self.menu = pygame_gui.windows.UIFileDialog(pygame.Rect((400, 300), (100, 100)), self.manager)
+                        self.state = False
                     if self.rel_button.check_pressed():
                         self.rel()
                     if self.clear_button.check_pressed():
@@ -380,6 +407,7 @@ class Game:
                         self.menu = None
                         #self.gen = self.load(path)
                         self.load(path)
+                        self.state = True
                     if self.show_button.check_pressed():
                         if self.fredgolm_flag == False:
                             self.show_button.set_text('Hide solution')
@@ -398,14 +426,14 @@ class Game:
                     if self.flip_button.check_pressed():
                         self.optimize()
                         self.redraw(from_scracth = True)
-                    if self.line_center_button.check_pressed():
-                        self.line_center()
-                        self.redraw(from_scracth = True)
-                    if self.height_button.check_pressed():
-                        newp = self.triangles[0].get_height_intersect(self.triangles[0].points[2])
-                        self.new_point(newp.coord)
-                        print(self.triangles[0].integral(self.triangles[0].points[2]))
-                        self.redraw(from_scracth = True)
+                    # if self.line_center_button.check_pressed():
+                    #     self.line_center()
+                    #     self.redraw(from_scracth = True)
+                    # if self.height_button.check_pressed():
+                    #     newp = self.triangles[0].get_height_intersect(self.triangles[0].points[2])
+                    #     self.new_point(newp.coord)
+                    #     print(self.triangles[0].integral(self.triangles[0].points[2]))
+                    #     self.redraw(from_scracth = True)
                     if self.tetr_calc_button.check_pressed():
                         self.tetrahedron_creation()
                         self.calc(mode = 1)
@@ -426,6 +454,8 @@ class Game:
             pygame.draw.rect(self.background, 'grey', rect=(0, 0, WINDOW_WIDTH * 7//8, WINDOW_HEIGHT), width=WINDOW_WIDTH * 7//8)
 
             font = pygame.font.SysFont('arial', 25)
+            #pygame.draw.circle(self.background, 'red', (WORKING_SPACE_WIDTH_HALF, WORKING_SPACE_HEIGHT_HALF), 300, 4)
+            #pygame.draw.circle(self.background, 'blue', (WORKING_SPACE_WIDTH_HALF + 150, WORKING_SPACE_HEIGHT_HALF + 150), 300, 4)
 
             for point in self.points:
                 #text = font.render(str(point.idd), True, (0, 0, 0))
@@ -436,6 +466,7 @@ class Game:
                 #self.background.blit(text,
                 #                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
+
                 # for related_p in point.related:
                 #     NewLine = Line(point, related_p)
                 #     if NewLine not in self.lines:
@@ -538,40 +569,35 @@ class Game:
             A, f, self.q = self.find_A(N, mode = 1)
             self.calculated_3d = np.linalg.solve(A, f)
             print(f'ACCURACY IS {self.accuracy(self.analyt_sol(),self.calculated_3d)}')
-        #calcul_num = sorted([[calcul[i], i] for i in range(len(self.triangles))],
-                            #key = lambda x: x[0])
-        # red = Color("blue")
-        # colors = list(red.range_to(Color("red"), math.ceil(calcul_num[-1][0] - calcul_num[0][0])))
-        # colors_rgb = [c.rgb for c in colors]
-        # colors_rgb_255 = [(c[0] * 255, c[1] * 255, c[2] * 255) for c in colors_rgb]
-
-        #print(calcul_num)
-        #c2 = (WINDOW_HEIGHT ** 3 / 3 + WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3))) / (
-        #            1 - WINDOW_HEIGHT ** 3 / 3 - WINDOW_HEIGHT ** 6 / (5 * (1 - WINDOW_HEIGHT ** 3 / 3)))
-        #c1 = WINDOW_HEIGHT * (1 + c2) / (1 - WINDOW_HEIGHT ** 3 / 3)
-        #analyt_sol = [1 + x ** 2 * c1 + c2 for x in range(0, WINDOW_HEIGHT, int(WINDOW_HEIGHT/N))]
-        #delta = sum([np.linalg.norm(analyt_sol[i] - calcul[i]) for i in range(0, N)]) / sum(
-        #    [np.linalg.norm(analyt_sol[i]) for i in range(0, N)])
 
 
     def core(self, p1: Point, p2: Point):
         return 1/(pi * 9) * (1/ abs(p1 - p2))
 
-    def core_3d(self, p1: Point, p2: Point, mode = 'c'):
-        #num = np.exp((1j * w * abs(p1 - p2)) / np.exp(1))
-        #denom = pi * 4/3 * 27 * abs(p1 - p2)
-        # if mode == 'f':
-        #     return num
-        # else:
-        #     return num / denom
+    def core_3d(self, p1: Point, p2: Point, mode = 'c', w = 2.5):
+        return 1 / (pi * 4/3 * 27) * (1 / abs(p1 - p2))
+
+        num = np.exp((1j * w * abs(p1 - p2)) / np.exp(1))
+        denom = pi * 4/3 * 27 * abs(p1 - p2)
+        if mode == 'f':
+            return num
+        else:
+            return num / denom
         return 1/(abs(p1 - p2) * 4/3 * pi * 27)
+
+    def exp_core(self, p1, p2):
+        return p1[0] * p2[1]
+
+    def exp_f(self, x: Point):
+        return x[0]
 
     def analyt_sol(self):
         A = np.array([[8/9, -1/3], [-1/15, 8/9]])
         f = np.array([1, 1/3])
         c1, c2 = np.linalg.solve(A, f)
-        f = lambda x: 1 + 1/3 * x**2 * c1 + 1/3 * c2
-        return [f(x*6/37 - 3) for x in range(0,37)]
+        c = 2/3 * (1.73 ** 3) / (1 + 2/3 * (1.73 ** 3))
+        f = lambda x: x*(1 - c)
+        return [f(i.center()[0]) for i in self.tetrahedron]
 
     def accuracy(self, true, calc):
         return sum([abs(x/y) for x, y in zip(true, calc)])/len(true)
@@ -595,10 +621,11 @@ class Game:
                         temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
                     else:
                         temp.append(self.core_3d(self.tetrahedron[i].center(), self.tetrahedron[j].center())
-                                    * self.tetrahedron[j].volume())
+                                   * self.tetrahedron[j].volume())
+                        #temp.append(self.exp_core(self.tetrahedron[i].center(), self.tetrahedron[j].center()) * self.tetrahedron[j].volume())
             A.append(temp)
 
-        A = np.array(A) #+ np.eye(len(A))
+        A = np.array(A) + np.eye(len(A))
         q = self.q
         if mode == 0:
             f_vec = [f(i.center, q) for i in self.triangles]
@@ -607,7 +634,8 @@ class Game:
             for i in self.tetrahedron:
                 #x, y, z = i.center().coordinates
                 #f_vec.append(f(x, y, z))
-                f_vec = [self.core(i.center(), q) for i in self.tetrahedron]
+                f_vec = [self.core_3d(i.center(), q) for i in self.tetrahedron]
+                #f_vec = [self.exp_f(i.center()) for i in self.tetrahedron]
         return [A, f_vec, q]
 
 
