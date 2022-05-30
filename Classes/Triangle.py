@@ -1,7 +1,7 @@
 from Classes.Point import Point
 from Classes.Lines import Line
 import numpy as np
-from math import log, tan, acos
+from math import log, tan, acos, pi, isclose
 
 class Triangle:
 
@@ -14,8 +14,36 @@ class Triangle:
         #     (p1[0] - p3[0]) + (p3[0]**2 + p3[1]**2) * (p1[0] - p2[0])
         x = round((p1[0] + p2[0] + p3[0]) / 3, 2)
         y = round((p1[1] + p2[1] + p3[1]) / 3, 2)
-        self.center = Point([x, y])
+        z = round((p1[2] + p2[2] + p3[2]) / 3, 2)
+        self.center = Point([x, y, z])
         self.color = 0
+        #self.name = p1.name + '/' + p2.name + '/' + p3.name
+        self.name = f'{p1.name}/{p2.name}/{p3.name}'
+        self.id = f'{p1.idd}/{p2.idd}/{p3.idd}'
+
+    def orthocenter(self):
+        H1 = self.get_height_intersect(self.points[0])
+        L1 = Line(self.points[0], H1)
+        H2 = self.get_height_intersect(self.points[1])
+        L2 = Line(self.points[1], H2)
+        return L1.intersect(L2, p_flag=True)
+
+        # x1, y1, z1 = self.points[0]
+        # x2, y2, z2 = self.points[1]
+        # x3, y3, z3 = self.points[2]
+        #
+        # x = np.linalg.det(np.array([[x1**2 + y1**2 + z1**2, y1, z1, 1],
+        #               [x2**2 + y2**2 + z2**2, y2, z2, 1],
+        #               [x3**2 + y3**2 + z3**3, y3, z3, 1]]))
+        #
+        # y = -1* np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
+        #               [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
+        #               [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
+        #
+        # z = np.linalg.det(np.array([[x1 ** 2 + y1 ** 2 + z1 ** 2, y1, z1, 1],
+        #               [x2 ** 2 + y2 ** 2 + z2 ** 2, y2, z2, 1],
+        #               [x3 ** 2 + y3 ** 2 + z3 ** 3, y3, z3, 1]]))
+        # return Point([x, y, z])
 
     def points_check(self, other: "Triangle") -> list[bool]:
         return [any([p1 == p2 for p2 in other.points]) for p1 in self.points]
@@ -24,6 +52,7 @@ class Triangle:
         return [Line(self.points[0], self.points[1]),
                 Line(self.points[1], self.points[2]),
                 Line(self.points[2], self.points[0])]
+
 
     def get_height_intersect(self, p: Point, height_len=False) -> Point:
         lines = self.lines()
@@ -66,9 +95,9 @@ class Triangle:
 
 
     def R(self) -> float:
-        return Line(self.points[0], self.points[1]).length * \
-               Line(self.points[1], self.points[2]).length * \
-               Line(self.points[2], self.points[0]).length / (4 * self.square())
+        return 2 * self.square() / (Line(self.points[0], self.points[1]).length + \
+               Line(self.points[1], self.points[2]).length + \
+               Line(self.points[2], self.points[0]).length)
 
     def __eq__(self, other: "Triangle") -> bool:
         if all(self.points_check(other)):
@@ -85,44 +114,78 @@ class Triangle:
         return False
 
     def square(self) -> float:
-        l1 = Line(self.points[0], self.points[1]).length
-        l2 = Line(self.points[1], self.points[2]).length
-        l3 = Line(self.points[2], self.points[0]).length
-        s = sum([l1, l2, l3])/2
-        return (s * (s - l1) * (s - l2) * (s - l3))**(1/2)
+        return self.area()
 
+    def get_4d(self):
+        x1, y1, z1 = self.points[0]
+        x2, y2, z2 = self.points[1]
+        x3, y3, z3 = self.points[2]
+        x = (y2 - y1) * (z3 - z1) - (z2 - z1) * (y3 - y1)
+        y = (z2 - z1) * (x3 - x1) - (x2 - x1) * (z3 - z1)
+        z = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
+        d = -x1 * x - y1 * y - z1 * z
+        return [x, y, z, d]
 
-    def is_in(self, point: Point) -> bool:
+    def is_in(self, point: Point, eps = 10 ** -6) -> bool:
         if point in self.points:
             return False
-        p0y = self.points[0][1]
-        p1y = self.points[1][1]
-        p2y = self.points[2][1]
-        p0x = self.points[0][0]
-        p1x = self.points[1][0]
-        p2x = self.points[2][0]
-        px = point[0]
-        py = point[1]
-        area = self.area()
-        s = 1 / (2 * area) * (p0y * p2x - p0x * p2y + (p2y - p0y) * px + (p0x - p2x) * py)
-        t = 1 / (2 * area) * (p0x * p1y - p0y * p1x + (p0y - p1y) * px + (p1x - p0x) * py)
 
-        if s > 0 and t > 0 and 1-s-t > 0:
-            return True
-        else:
-            return False
+        x1, y1, z1 = self.points[0]
+        x2, y2, z2 = self.points[1]
+        x3, y3, z3 = self.points[2]
+        x4, y4, z4 = point
+        res = np.linalg.det(np.array([[x1, x2, x3, x4],
+                                [y1, y2, y3, y4],
+                                [z1, z2, z3, z4],
+                                [1, 1, 1, 1]]))
+        if abs(res) < eps:
+            a = Line(point, self.points[0])
+            b = Line(point, self.points[1])
+            c = Line(point, self.points[2])
+            return isclose(a.arcos_angle_between(b) +
+                       b.arcos_angle_between(c) +
+                       c.arcos_angle_between(a), 2*pi, abs_tol=10**-6)
+
+            u = np.array(b.coordinates) @ np.array(c.coordinates)
+            v = np.array(c.coordinates) @ np.array(a.coordinates)
+            w = np.array(a.coordinates) @ np.array(b.coordinates)
+            if np.dot(u, w) < 0 or np.dot(u, v) < 0:
+                return False
+            else:
+                return True
+
+            squares = []
+            t_square = self.square()
+            for i in range(len(self.points)):
+                next_i = (i + 1) % 2
+                v1 = point - self.points[i]
+                v2 = self.points[next_i] - self.points[i]
+                squares.append(np.array(v1.coordinates) @ np.array(v2.coordinates) / 2 / t_square)
+            if all([s > 0 for s in squares]) and 1 - sum(squares) > 0:
+                return True
+            # p0y = self.points[0][1]
+            # p1y = self.points[1][1]
+            # p2y = self.points[2][1]
+            # p0x = self.points[0][0]
+            # p1x = self.points[1][0]
+            # p2x = self.points[2][0]
+            # px = point[0]
+            # py = point[1]
+            # area = self.area()
+            # s = 1 / (2 * area) * (p0y * p2x - p0x * p2y + (p2y - p0y) * px + (p0x - p2x) * py)
+            # t = 1 / (2 * area) * (p0x * p1y - p0y * p1x + (p0y - p1y) * px + (p1x - p0x) * py)
+            #
+            # if s > 0 and t > 0 and 1-s-t > 0:
+            #     return True
+        return False
 
     def area(self) -> float:
-        p0y = self.points[0][1]
-        p1y = self.points[1][1]
-        p2y = self.points[2][1]
-        p0x = self.points[0][0]
-        p1x = self.points[1][0]
-        p2x = self.points[2][0]
-        return 0.5 * (-p1y * p2x + p0y * (-p1x + p2x) + p0x * (p1y - p2y) + p1x * p2y)
+        v1 = self.points[1] - self.points[0]
+        v2 = self.points[2] - self.points[0]
+        return abs(np.array(v1.coordinates) @ np.array(v2.coordinates) / 2)
 
     def __repr__(self) -> str:
-        return ' '.join(map(str, self.points))
+        return self.name
 
     def __str__(self) -> str:
         return self.__repr__()
