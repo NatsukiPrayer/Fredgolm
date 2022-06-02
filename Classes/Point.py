@@ -111,3 +111,12 @@ class Point:
     def distance(self, other: "Point"):
         res = self - other
         return (res[0] ** 2 + res[1] ** 2) ** (1 / 2)
+
+    def same_plane_check(self, p1, p2, p3):
+        ad = np.array((p1 - self).coordinates)
+        bd = np.array((p2 - self).coordinates)
+        cd = np.array((p3 - self).coordinates)
+        det = np.linalg.det(np.array([ad,
+                                      bd,
+                                      cd]))
+        return isclose(det, 0)

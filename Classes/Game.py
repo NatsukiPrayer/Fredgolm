@@ -101,10 +101,12 @@ class Game:
         self.rot_z = np.array(
             [[cos(self.angle_z), -sin(self.angle_z), 0], [sin(self.angle_z), cos(self.angle_z), 0], [0, 0, 1]])
         self.scale = 100
+        self.offset_x = self.offset_y = 0
+
 
     def new_point(self, pos, isclicked = False) -> None:
         if isclicked:
-            pos = [(pos[0] - WORKING_SPACE_WIDTH_HALF)/self.scale, (pos[1] - WORKING_SPACE_HEIGHT_HALF)/self.scale]
+            pos = [(pos[0] - WORKING_SPACE_WIDTH_HALF - self.offset_x)/self.scale, (pos[1] - WORKING_SPACE_HEIGHT_HALF - self.offset_y)/self.scale ]
             NewPoint = Point(list(pos))
             NewPoint = Point(NewPoint.inv_project(NewPoint.coordinates, self.rot_x, self.rot_y, self.rot_z))
         else:
@@ -232,7 +234,7 @@ class Game:
         self.angle_x = self.angle_y = self.angle_z = DEFAULT_ANGLE
 
     def divide(self) -> None:
-        centers = [t.center for t in self.triangles]
+        centers = [t.center for t in self.triangles.copy()]
         for c in centers:
             self.new_point(c.coordinates)
 
@@ -350,6 +352,14 @@ class Game:
                         if self.mstate:
                             next(self.gen)
                         self.mstate = False
+                    if keys[pygame.K_UP]:
+                        self.offset_y -= 100
+                    if keys[pygame.K_DOWN]:
+                        self.offset_y += 100
+                    if keys[pygame.K_RIGHT]:
+                        self.offset_x += 100
+                    if keys[pygame.K_LEFT]:
+                        self.offset_x -= 100
                     if event.type == pygame.KEYUP:
                         print(event.key)
                         if event.key == 109:
@@ -371,10 +381,7 @@ class Game:
                     self.tri_calc_button.disable()
                 else:
                     self.tri_calc_button.enable()
-                if len(self.tetrahedron) == 0:
-                    self.tetr_calc_button.disable()
-                else:
-                    self.tetr_calc_button.enable()
+
                 if len(self.calculated) == 0:
                     self.show_button.disable()
                 else:
@@ -461,8 +468,8 @@ class Game:
                 #text = font.render(str(point.idd), True, (0, 0, 0))
 
                 xy = point.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale)
-                x = xy[0]
-                y = xy[1]
+                x = xy[0] + self.offset_x
+                y = xy[1] + self.offset_y
                 #self.background.blit(text,
                 #                      (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF))
                 pygame.draw.circle(self.background, 'black', (x + WORKING_SPACE_WIDTH_HALF, y + WORKING_SPACE_HEIGHT_HALF), 4)
@@ -484,10 +491,10 @@ class Game:
                 #                                 rel_p_y + WORKING_SPACE_HEIGHT_HALF), 1)
             for line in self.lines:
                 p = [el.project(self.rot_x, self.rot_y, self.rot_z, self.projection_matrix, scale=self.scale) for el in line.points]
-                pygame.draw.aaline(self.background, 'black', (p[0][0] + WORKING_SPACE_WIDTH_HALF,
-                                                             p[0][1] + WORKING_SPACE_HEIGHT_HALF),
-                                                             (p[1][0] + WORKING_SPACE_WIDTH_HALF,
-                                                             p[1][1] + WORKING_SPACE_HEIGHT_HALF), 1)
+                pygame.draw.aaline(self.background, 'black', (p[0][0] + WORKING_SPACE_WIDTH_HALF + self.offset_x,
+                                                             p[0][1] + WORKING_SPACE_HEIGHT_HALF + self.offset_y),
+                                                             (p[1][0] + WORKING_SPACE_WIDTH_HALF + self.offset_x,
+                                                             p[1][1] + WORKING_SPACE_HEIGHT_HALF + self.offset_y), 1)
 
             # i = 0
             # font = pygame.font.SysFont('arial', 50)
@@ -564,6 +571,7 @@ class Game:
             N = len(self.triangles)
             A, f, self.q = self.find_A(N)
             self.calculated = np.linalg.solve(A, f)
+            print(f'ACCURACY IS {self.accuracy(self.analyt_sol(), self.calculated)}')
         if mode == 1:
             N = len(self.tetrahedron)
             A, f, self.q = self.find_A(N, mode = 1)
@@ -596,8 +604,8 @@ class Game:
         f = np.array([1, 1/3])
         c1, c2 = np.linalg.solve(A, f)
         c = 2/3 * (1.73 ** 3) / (1 + 2/3 * (1.73 ** 3))
-        f = lambda x: x*(1 - c)
-        return [f(i.center()[0]) for i in self.tetrahedron]
+        f = lambda x: x/19
+        return [f(i.center[0]) for i in self.triangles]
 
     def accuracy(self, true, calc):
         return sum([abs(x/y) for x, y in zip(true, calc)])/len(true)
@@ -618,7 +626,8 @@ class Game:
                     temp.append(1)
                 else:
                     if mode == 0:
-                        temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
+                        temp.append(self.exp_core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
+                        #temp.append(self.core(self.triangles[i].center, self.triangles[j].center) * self.triangles[j].area())
                     else:
                         temp.append(self.core_3d(self.tetrahedron[i].center(), self.tetrahedron[j].center())
                                    * self.tetrahedron[j].volume())
@@ -628,7 +637,8 @@ class Game:
         A = np.array(A) + np.eye(len(A))
         q = self.q
         if mode == 0:
-            f_vec = [f(i.center, q) for i in self.triangles]
+            f_vec = [self.exp_f(i.center) for i in self.triangles]
+            #f_vec = [f(i.center, q) for i in self.triangles]
         else:
             f_vec = []
             for i in self.tetrahedron:
